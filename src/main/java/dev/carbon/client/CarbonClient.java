@@ -97,7 +97,7 @@ public final class CarbonClient implements ClientModInitializer {
             return;
         }
         net.minecraft.client.Minecraft minecraft = net.minecraft.client.Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.screen != null) {
+        if (minecraft.player == null || minecraft.gui.screen() != null) {
             return;
         }
         MouseClickEvent event;

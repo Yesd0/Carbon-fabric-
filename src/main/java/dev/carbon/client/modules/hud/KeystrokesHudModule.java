@@ -32,7 +32,7 @@ public final class KeystrokesHudModule extends HudModule {
     @Override
     protected void onHudTick() {
         Minecraft client = Minecraft.getInstance();
-        if (client.screen != null || client.player == null) {
+        if (client.gui.screen() != null || client.player == null) {
             up = left = down = right = jump = sneak = sprint = false;
             return;
         }

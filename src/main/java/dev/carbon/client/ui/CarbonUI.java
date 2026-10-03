@@ -43,17 +43,17 @@ public final class CarbonUI {
         }
 
         Minecraft client = Minecraft.getInstance();
-        if (client.screen instanceof CarbonDemoScreen demoScreen && demoScreen.captureKey(event)) {
+        if (client.gui.screen() instanceof CarbonDemoScreen demoScreen && demoScreen.captureKey(event)) {
             return;
         }
-        if (event.keyCode() == GLFW.GLFW_KEY_F8 && event.action() == GLFW.GLFW_PRESS && client.screen == null) {
+        if (event.keyCode() == GLFW.GLFW_KEY_F8 && event.action() == GLFW.GLFW_PRESS && client.gui.screen() == null) {
             client.gui.setScreen(new CarbonDemoScreen(moduleManager, null));
         }
     }
 
     private static void onMouseInput(MouseInputEvent event) {
         Minecraft client = Minecraft.getInstance();
-        if (client.screen instanceof CarbonDemoScreen demoScreen) {
+        if (client.gui.screen() instanceof CarbonDemoScreen demoScreen) {
             demoScreen.captureMouse(event);
         }
     }

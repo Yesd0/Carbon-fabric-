@@ -40,13 +40,13 @@ public final class ZoomModule extends Module {
     }
 
     private void onTick(ClientTickEvent event) {
-        if (event.phase() == ClientTickEvent.Phase.END && Minecraft.getInstance().screen != null) {
+        if (event.phase() == ClientTickEvent.Phase.END && Minecraft.getInstance().gui.screen() != null) {
             keyHeld = false;
         }
     }
 
     private void onKeyInput(KeyInputEvent event) {
-        if (Minecraft.getInstance().screen != null) {
+        if (Minecraft.getInstance().gui.screen() != null) {
             keyHeld = false;
             return;
         }
@@ -62,7 +62,7 @@ public final class ZoomModule extends Module {
     }
 
     private void onMouseInput(MouseInputEvent event) {
-        if (Minecraft.getInstance().screen != null) {
+        if (Minecraft.getInstance().gui.screen() != null) {
             keyHeld = false;
             return;
         }

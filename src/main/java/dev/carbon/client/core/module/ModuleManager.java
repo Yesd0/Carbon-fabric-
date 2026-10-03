@@ -74,7 +74,7 @@ public final class ModuleManager {
     }
 
     private void onKeyInput(KeyInputEvent event) {
-        if (event.action() != GLFW.GLFW_PRESS || Minecraft.getInstance().screen != null) {
+        if (event.action() != GLFW.GLFW_PRESS || Minecraft.getInstance().gui.screen() != null) {
             return;
         }
         int keyCode = event.keyCode();
@@ -88,7 +88,7 @@ public final class ModuleManager {
     }
 
     private void onMouseInput(MouseInputEvent event) {
-        if (event.action() != GLFW.GLFW_PRESS || Minecraft.getInstance().screen != null) {
+        if (event.action() != GLFW.GLFW_PRESS || Minecraft.getInstance().gui.screen() != null) {
             return;
         }
         int button = event.button();
