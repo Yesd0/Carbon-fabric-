@@ -224,9 +224,10 @@ public final class CarbonDemoScreen extends CarbonScreen {
     }
 
     private void calculateLayout() {
-        int margin = Math.max(8, Math.min(32, Math.min(width, height) / 20));
-        panelWidth = Math.max(1, Math.min(1120, width - margin * 2));
-        panelHeight = Math.max(1, Math.min(760, height - margin * 2));
+        int availableWidth = Math.max(1, width - 16);
+        int availableHeight = Math.max(1, height - 16);
+        panelWidth = Math.max(1, Math.min(1080, Math.min(availableWidth, Math.round(width * 0.94f))));
+        panelHeight = Math.max(1, Math.min(660, Math.min(availableHeight, Math.round(height * 0.84f))));
         panelX = (width - panelWidth) / 2;
         panelY = (height - panelHeight) / 2;
         sidebarWidth = Math.min(194, Math.max(90, panelWidth / 5));
@@ -248,7 +249,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
                 tabWidth, 28, "SETTINGS", () -> setActiveView(View.SETTINGS),
                 activeView == View.SETTINGS, true);
         closeButton = new CarbonComponents.Button(panelX + panelWidth - 46, panelY + 14,
-                30, 30, "X", this::onClose, false, true);
+                30, 30, "×", this::onClose, false, true);
         addRenderableWidget(modulesTab);
         addRenderableWidget(settingsTab);
         addRenderableWidget(closeButton);
@@ -343,8 +344,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
         }
 
         int saveY = sidebarY + sidebarHeight - 38;
+        String saveLabel = sidebarWidth < 136 ? "NEW" : "SAVE AS NEW PROFILE";
         saveProfileButton = new CarbonComponents.Button(sidebarX + 8, saveY,
-                sidebarWidth - 38, 28, "SAVE AS NEW", this::createProfile, false, true);
+                sidebarWidth - 38, 28, saveLabel, this::createProfile, false, true);
         saveProfileButton.visible = activeView == View.MODULES;
         addRenderableWidget(saveProfileButton);
     }

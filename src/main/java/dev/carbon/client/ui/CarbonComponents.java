@@ -157,13 +157,22 @@ public final class CarbonComponents {
 
             int rowX = getX() + 1;
             int rowWidth = getWidth() - 2;
+            int gearWidth = Math.min(36, Math.max(26, rowWidth / 5));
+            int gearX = rowX + rowWidth - gearWidth;
             CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, optionsHeight,
                     0.0f, CarbonTheme.PANEL_RAISED);
             CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, 1, 0.5f,
                     CarbonTheme.BORDER_SOFT);
+            CarbonRenderer.roundedRect(graphics, gearX, optionsY, gearWidth, optionsHeight,
+                    0.0f, CarbonTheme.PANEL_HOVER);
+            CarbonRenderer.roundedRect(graphics, gearX, optionsY, 1, optionsHeight,
+                    0.5f, CarbonTheme.BORDER_SOFT);
             graphics.nextStratum();
-            CarbonText.centered(graphics, font, "OPTIONS  >", getX() + getWidth() / 2,
+            int optionsCenterX = rowX + (rowWidth - gearWidth) / 2;
+            CarbonText.centered(graphics, font, "OPTIONS", optionsCenterX,
                     optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.TEXT, false);
+            CarbonText.centered(graphics, font, "⚙", gearX + gearWidth / 2,
+                    optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.ACCENT, false);
 
             int stateColor = module.enabled() ? CarbonTheme.SUCCESS_SURFACE : CarbonTheme.ERROR_SURFACE;
             CarbonRenderer.roundedRect(graphics, rowX, stateY, rowWidth, stateHeight,
