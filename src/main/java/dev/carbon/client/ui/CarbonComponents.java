@@ -10,6 +10,7 @@ import dev.carbon.client.ui.render.CarbonRenderer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
@@ -29,6 +30,11 @@ public final class CarbonComponents {
             super(x, y, width, height, Component.literal(label));
             this.label = label;
             this.lastAnimationNanos = System.nanoTime();
+        }
+
+        @Override
+        protected void updateWidgetNarration(NarrationElementOutput output) {
+            defaultButtonNarrationText(output);
         }
 
         protected final String label() {
