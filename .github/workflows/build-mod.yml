@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -49,6 +49,47 @@ jobs:
           PY
             exit "$build_status"
           fi
+
+      - name: Publish JAR object for Arena retrieval
+        if: success()
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          jars = sorted(Path("build/libs").glob("*.jar"))
+          candidates = [jar for jar in jars if not jar.name.endswith("-sources.jar")]
+          if len(candidates) != 1:
+              raise SystemExit(f"Expected one mod JAR, found: {[jar.name for jar in candidates]}")
+
+          jar = candidates[0]
+          payload = json.dumps({
+              "content": base64.b64encode(jar.read_bytes()).decode("ascii"),
+              "encoding": "base64",
+          }).encode("utf-8")
+          request = Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/git/blobs",
+              data=payload,
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "X-GitHub-Api-Version": "2022-11-28",
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          with urlopen(request, timeout=30) as response:
+              blob_sha = json.load(response)["sha"]
+
+          print(f"::notice title=Carbon mod JAR::{jar.name} git-blob-sha={blob_sha}")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as summary:
+              summary.write(f"Carbon mod JAR: `{jar.name}`\nGit blob SHA: `{blob_sha}`\n")
+          PY
 
       - name: Upload mod JAR
         if: success()
