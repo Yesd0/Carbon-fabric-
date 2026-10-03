@@ -1,5 +1,6 @@
 package dev.carbon.client.ui;
 
+import dev.carbon.client.core.config.ConfigManager;
 import dev.carbon.client.core.event.EventBus;
 import dev.carbon.client.core.event.KeyInputEvent;
 import dev.carbon.client.core.event.MouseInputEvent;
@@ -15,17 +16,19 @@ public final class CarbonUI {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
 
     private static ModuleManager moduleManager;
+    private static ConfigManager configManager;
     private static boolean initialized;
 
     private CarbonUI() {
     }
 
-    public static synchronized void initialize(EventBus eventBus, ModuleManager modules) {
+    public static synchronized void initialize(EventBus eventBus, ModuleManager modules, ConfigManager config) {
         if (initialized) {
             return;
         }
 
         moduleManager = modules;
+        configManager = config;
         try {
             CarbonRenderPipelines.register();
         } catch (Throwable failure) {
@@ -47,7 +50,7 @@ public final class CarbonUI {
             return;
         }
         if (event.keyCode() == GLFW.GLFW_KEY_F8 && event.action() == GLFW.GLFW_PRESS && client.gui.screen() == null) {
-            client.gui.setScreen(new CarbonDemoScreen(moduleManager, null));
+            client.gui.setScreen(new CarbonDemoScreen(moduleManager, configManager, null));
         }
     }
 

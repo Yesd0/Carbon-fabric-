@@ -100,7 +100,7 @@ jobs:
           if gh release view "$tag" >/dev/null 2>&1; then
             gh release upload "$tag" build/libs/carbonclient-1.0.0.jar --clobber
           else
-            gh release create "$tag" build/libs/carbonclient-1.0.0.jar --title "Carbon Client 1.0.0 Test Build" --notes "Minecraft 26.2 test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. Press F8 to open the Carbon demo screen. Runtime/gameplay testing is pending." --prerelease --target "$GITHUB_REF_NAME"
+            gh release create "$tag" build/libs/carbonclient-1.0.0.jar --title "Carbon Client 1.0.0 Test Build" --notes "Minecraft 26.2 test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. Press F8 to open Carbon's compact in-game module popup. Runtime/gameplay testing is pending." --prerelease --target "$GITHUB_REF_NAME"
           fi
 
       - name: Upload mod JAR

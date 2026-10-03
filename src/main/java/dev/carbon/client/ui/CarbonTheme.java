@@ -1,23 +1,28 @@
 package dev.carbon.client.ui;
 
-/** Shared Carbon green palette for the client interface. Colors use ARGB. */
+/** Shared translucent Carbon glass palette. Colors use ARGB. */
 public final class CarbonTheme {
-    public static final int SCRIM = 0xA807100B;
-    public static final int FRAME = 0xF20D1511;
-    public static final int PANEL = 0xF31A241E;
-    public static final int PANEL_RAISED = 0xF6233028;
-    public static final int PANEL_HOVER = 0xF92A3A30;
+    public static final int SCRIM = 0x43050A07;
+    public static final int FRAME = 0xCF0D1511;
+    public static final int PANEL = 0x85141D18;
+    public static final int PANEL_RAISED = 0xA3202C25;
+    public static final int PANEL_HOVER = 0xB52B3D32;
+    public static final int CARD = 0x79131C17;
+    public static final int CARD_HOVER = 0x9D1C2B22;
     public static final int ACCENT = 0xFF55E695;
     public static final int ACCENT_DEEP = 0xFF1D8D55;
     public static final int ACCENT_MUTED = 0xFF285A3C;
-    public static final int BORDER = 0x805A8A6A;
+    public static final int BORDER = 0x8855E695;
+    public static final int BORDER_SOFT = 0x557D9C86;
     public static final int TEXT = 0xFFF1F7F2;
     public static final int TEXT_MUTED = 0xFFA4B6AA;
     public static final int TEXT_DIM = 0xFF708176;
     public static final int TRACK_OFF = 0xFF35443A;
-    public static final int SUCCESS = 0xFF64E99E;
+    public static final int SUCCESS = 0xFF58D895;
+    public static final int SUCCESS_SURFACE = 0xCB187A4A;
     public static final int WARNING = 0xFFFFD27A;
     public static final int ERROR = 0xFFFF8585;
+    public static final int ERROR_SURFACE = 0xC44B2030;
 
     private CarbonTheme() {
     }

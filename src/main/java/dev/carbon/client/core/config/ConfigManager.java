@@ -157,6 +157,19 @@ public final class ConfigManager implements AutoCloseable {
         return true;
     }
 
+    /** Creates and activates a named profile containing the current module state. */
+    public boolean createProfile(String profileName) {
+        if (!validProfileName(profileName) || DEFAULT_PROFILE.equals(profileName) || closed
+                || namedProfiles.containsKey(profileName) || Files.exists(profilePath(profileName))) {
+            return false;
+        }
+        captureActiveProfile();
+        namedProfiles.put(profileName, captureModuleState());
+        activeProfile = profileName;
+        markDirty();
+        return true;
+    }
+
     private JsonObject modulesFor(String profileName) {
         if (DEFAULT_PROFILE.equals(profileName)) {
             return defaultModules;

@@ -58,14 +58,13 @@ public final class CarbonComponents {
         protected final void drawLabel(GuiGraphicsExtractor graphics, String text, int color, int inset) {
             var font = Minecraft.getInstance().font;
             int textY = getY() + (getHeight() - font.lineHeight) / 2;
-            graphics.text(font, text, getX() + inset, textY, color, false);
+            CarbonText.draw(graphics, font, text, getX() + inset, textY, color, false);
         }
 
         protected final void drawCenteredLabel(GuiGraphicsExtractor graphics, String text, int color) {
             var font = Minecraft.getInstance().font;
-            int textX = getX() + (getWidth() - font.width(text)) / 2;
             int textY = getY() + (getHeight() - font.lineHeight) / 2;
-            graphics.text(font, text, textX, textY, color, false);
+            CarbonText.centered(graphics, font, text, getX() + getWidth() / 2, textY, color, false);
         }
 
         protected final void beginTextLayer(GuiGraphicsExtractor graphics) {
@@ -107,6 +106,106 @@ public final class CarbonComponents {
         @Override
         public void onPress(InputWithModifiers input) {
             action.run();
+        }
+    }
+
+    /** Card-style module control with distinct options and enabled-state click zones. */
+    public static final class ModuleCard extends Widget {
+        private final Module module;
+        private final Runnable openOptions;
+        private final String categoryLabel;
+        private final String iconLabel;
+
+        public ModuleCard(int x, int y, int width, int height, Module module, Runnable openOptions) {
+            super(x, y, width, height, module.name());
+            this.module = module;
+            this.openOptions = openOptions;
+            this.categoryLabel = module.category().label().toUpperCase(java.util.Locale.ROOT);
+            this.iconLabel = createIconLabel(module);
+        }
+
+        public Module module() {
+            return module;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int surface = CarbonTheme.mix(CarbonTheme.CARD, CarbonTheme.CARD_HOVER, animateHover());
+            CarbonRenderer.outline(graphics, getX(), getY(), getWidth(), getHeight(),
+                    12.0f, CarbonTheme.BORDER_SOFT, surface);
+
+            int stateHeight = statusHeight();
+            int optionsHeight = stateHeight;
+            int stateY = getY() + getHeight() - stateHeight;
+            int optionsY = stateY - optionsHeight - 2;
+            int iconSize = Math.min(50, Math.max(34, Math.min(getWidth() / 4, optionsY - getY() - 28)));
+            int iconX = getX() + (getWidth() - iconSize) / 2;
+            int iconY = getY() + 10;
+            int iconSurface = module.enabled() ? CarbonTheme.ACCENT_MUTED : CarbonTheme.PANEL_RAISED;
+            CarbonRenderer.outline(graphics, iconX, iconY, iconSize, iconSize, 12.0f,
+                    CarbonTheme.BORDER_SOFT, iconSurface);
+
+            var font = Minecraft.getInstance().font;
+            graphics.nextStratum();
+            CarbonText.centered(graphics, font, iconLabel, getX() + getWidth() / 2,
+                    iconY + (iconSize - font.lineHeight) / 2, CarbonTheme.TEXT, false);
+            int titleY = iconY + iconSize + 7;
+            CarbonText.centered(graphics, font, module.name(), getX() + getWidth() / 2,
+                    titleY, CarbonTheme.TEXT, false);
+            CarbonText.centered(graphics, font, categoryLabel, getX() + getWidth() / 2,
+                    titleY + font.lineHeight + 2, CarbonTheme.TEXT_DIM, false);
+
+            int rowX = getX() + 1;
+            int rowWidth = getWidth() - 2;
+            CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, optionsHeight,
+                    0.0f, CarbonTheme.PANEL_RAISED);
+            CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, 1, 0.5f,
+                    CarbonTheme.BORDER_SOFT);
+            graphics.nextStratum();
+            CarbonText.centered(graphics, font, "OPTIONS  >", getX() + getWidth() / 2,
+                    optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.TEXT, false);
+
+            int stateColor = module.enabled() ? CarbonTheme.SUCCESS_SURFACE : CarbonTheme.ERROR_SURFACE;
+            CarbonRenderer.roundedRect(graphics, rowX, stateY, rowWidth, stateHeight,
+                    0.0f, stateColor);
+            graphics.nextStratum();
+            CarbonText.centered(graphics, font, module.enabled() ? "ENABLED" : "DISABLED",
+                    getX() + getWidth() / 2, stateY + (stateHeight - font.lineHeight) / 2,
+                    CarbonTheme.TEXT, false);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            module.toggle();
+        }
+
+        @Override
+        public void onClick(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                super.onClick(event, doubleClick);
+                return;
+            }
+            setFocused(true);
+            playDownSound(Minecraft.getInstance().getSoundManager());
+            if (event.y() - getY() >= getHeight() - statusHeight()) {
+                module.toggle();
+            } else {
+                openOptions.run();
+            }
+        }
+
+        private int statusHeight() {
+            return Math.max(22, Math.min(31, getHeight() / 7));
+        }
+
+        private static String createIconLabel(Module module) {
+            return switch (module.id()) {
+                case "fps" -> "FPS";
+                case "cps" -> "CPS";
+                case "keystrokes" -> "KEYS";
+                case "zoom" -> "ZOOM";
+                default -> module.name().toUpperCase(java.util.Locale.ROOT);
+            };
         }
     }
 
@@ -163,6 +262,9 @@ public final class CarbonComponents {
     /** Number-setting slider. Mouse clicks and drags map directly onto the setting range. */
     public static final class Slider extends Widget {
         private final NumberSetting setting;
+        private double cachedValue = Double.NaN;
+        private String cachedDisplayValue = "";
+        private int cachedDisplayWidth;
 
         public Slider(int x, int y, int width, int height, NumberSetting setting) {
             super(x, y, width, height, setting.label());
@@ -178,8 +280,14 @@ public final class CarbonComponents {
             int trackY = getY() + getHeight() - 9;
             CarbonRenderer.roundedRect(graphics, trackX, trackY, trackWidth, 3, 1.5f,
                     CarbonTheme.TRACK_OFF);
+            double currentValue = setting.get();
+            if (Double.compare(currentValue, cachedValue) != 0) {
+                cachedValue = currentValue;
+                cachedDisplayValue = setting.displayValue();
+                cachedDisplayWidth = CarbonText.width(Minecraft.getInstance().font, cachedDisplayValue);
+            }
             double range = setting.maximum() - setting.minimum();
-            double fraction = range <= 0.0 ? 0.0 : (setting.get() - setting.minimum()) / range;
+            double fraction = range <= 0.0 ? 0.0 : (currentValue - setting.minimum()) / range;
             int fillWidth = (int) Math.round(trackWidth * Math.max(0.0, Math.min(1.0, fraction)));
             if (fillWidth > 0) {
                 CarbonRenderer.roundedRect(graphics, trackX, trackY, fillWidth, 3, 1.5f,
@@ -188,11 +296,10 @@ public final class CarbonComponents {
 
             beginTextLayer(graphics);
             var font = Minecraft.getInstance().font;
-            String value = setting.displayValue();
             int textY = getY() + 5;
-            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
-            graphics.text(font, value, getX() + getWidth() - font.width(value) - 10,
-                    textY, CarbonTheme.ACCENT, false);
+            CarbonText.draw(graphics, font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            CarbonText.draw(graphics, font, cachedDisplayValue,
+                    getX() + getWidth() - cachedDisplayWidth - 10, textY, CarbonTheme.ACCENT, false);
         }
 
         @Override
@@ -239,9 +346,9 @@ public final class CarbonComponents {
             var font = Minecraft.getInstance().font;
             String mode = setting.get();
             int textY = getY() + (getHeight() - font.lineHeight) / 2;
-            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
-            graphics.text(font, mode, getX() + getWidth() - font.width(mode) - 10,
-                    textY, CarbonTheme.ACCENT, false);
+            CarbonText.draw(graphics, font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            CarbonText.draw(graphics, font, mode,
+                    getX() + getWidth() - CarbonText.width(font, mode) - 10, textY, CarbonTheme.ACCENT, false);
         }
 
         @Override
@@ -295,6 +402,8 @@ public final class CarbonComponents {
     public static final class KeybindButton extends Widget {
         private final KeybindSetting setting;
         private final Runnable beginCapture;
+        private KeybindSetting.Binding cachedBinding;
+        private String cachedDisplayValue;
         private boolean listening;
 
         public KeybindButton(int x, int y, int width, int height, KeybindSetting setting, Runnable beginCapture) {
@@ -319,10 +428,15 @@ public final class CarbonComponents {
             beginTextLayer(graphics);
 
             var font = Minecraft.getInstance().font;
-            String value = listening ? "Press a key or mouse button" : setting.displayValue();
+            if (cachedBinding == null || !cachedBinding.equals(setting.get())) {
+                cachedBinding = setting.get();
+                cachedDisplayValue = setting.displayValue();
+            }
+            String value = listening ? "Press a key or mouse button" : cachedDisplayValue;
             int textY = getY() + (getHeight() - font.lineHeight) / 2;
-            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
-            graphics.text(font, value, getX() + getWidth() - font.width(value) - 10,
+            CarbonText.draw(graphics, font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            CarbonText.draw(graphics, font, value,
+                    getX() + getWidth() - CarbonText.width(font, value) - 10,
                     textY, listening ? CarbonTheme.WARNING : CarbonTheme.ACCENT, false);
         }
 

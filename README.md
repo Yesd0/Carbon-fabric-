@@ -1,6 +1,6 @@
 # Carbon Client — Parts 1–2
 
-Carbon Client is a single-jar, client-only Fabric mod for Minecraft 26.2 and Java 25. Part 1 supplies the module, setting, event, persistence, HUD, and initial feature foundations. Part 2 adds CarbonUI, its green theme, native GUI rendering, reusable controls, and a live demo/configuration screen.
+Carbon Client is a single-jar, client-only Fabric mod for Minecraft 26.2 and Java 25. Part 1 supplies the module, setting, event, persistence, HUD, and initial feature foundations. Part 2 adds CarbonUI, its translucent green glass theme, native GUI rendering, reusable controls, and a compact in-game popup for real module and profile configuration.
 
 ## Toolchain pins
 
@@ -38,8 +38,10 @@ Carbon Client stores data in `.minecraft/config/carbonclient/`. The root config 
 
 ## Part 2 — CarbonUI
 
-- F8 opens the non-pausing Carbon demo screen. The module list and controls are bound to the real module/setting instances, including keyboard/mouse keybind capture, so changes use the existing config persistence path.
-- Carbon buttons, toggles, number sliders, mode controls, and color swatches use Minecraft's native `Screen`/`AbstractButton` lifecycle and are registered with `addRenderableWidget`.
+- F8 opens a compact, non-pausing popup over the game world, with a translucent Carbon glass palette, Carbon mark, custom display font, category filters, search, profile sidebar, module cards, and a separate settings view.
+- Only the real HUD and Zoom modules are shown. Cards expose module state and settings; number, mode, color, toggle, and keyboard/mouse keybind controls remain connected to the persisted settings.
+- Profiles can be switched or created from the sidebar and are stored by the existing local config manager.
+- Carbon buttons, toggles, sliders, mode controls, color swatches, keybind controls, and module cards use Minecraft's native `Screen`/`AbstractButton` lifecycle and are registered with `addRenderableWidget`.
 - Carbon's rounded panels use an SDF Blaze3D render pipeline and retained GUI render states. If SDF pipeline registration itself fails, the UI falls back to Minecraft's native rectangular fill renderer.
 - Background blur is requested through Minecraft's native GUI blur stratum and follows the configured menu-background blur option. The supplied GLSL also contains a reusable separable Gaussian kernel.
 - No raw OpenGL calls or third-party UI rendering libraries are used.

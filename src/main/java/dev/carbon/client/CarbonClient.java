@@ -46,7 +46,7 @@ public final class CarbonClient implements ClientModInitializer {
             configManager.load();
 
             try {
-                CarbonUI.initialize(eventBus, moduleManager);
+                CarbonUI.initialize(eventBus, moduleManager, configManager);
             } catch (Throwable failure) {
                 LOGGER.error("Could not initialize Carbon UI; the client modules remain available", failure);
             }
