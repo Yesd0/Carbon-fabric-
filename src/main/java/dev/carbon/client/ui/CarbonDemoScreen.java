@@ -197,6 +197,14 @@ public final class CarbonDemoScreen extends CarbonScreen {
         return true;
     }
 
+    private void updateKeybindButtons() {
+        for (AbstractWidget control : settingControls) {
+            if (control instanceof CarbonComponents.KeybindButton button) {
+                button.setListening(button.setting() == capturingKeybind);
+            }
+        }
+    }
+
     @Override
     public boolean keyPressed(KeyEvent event) {
         if (suppressCapturedKey) {

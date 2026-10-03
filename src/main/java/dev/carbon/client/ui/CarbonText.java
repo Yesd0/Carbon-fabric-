@@ -3,6 +3,7 @@ package dev.carbon.client.ui;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
@@ -28,7 +29,8 @@ public final class CarbonText {
         if (cached != null) {
             return cached;
         }
-        Component created = Component.literal(text).withStyle(Style.EMPTY.withFont(DISPLAY_FONT));
+        Component created = Component.literal(text).withStyle(
+                Style.EMPTY.withFont(new FontDescription.Resource(DISPLAY_FONT)));
         COMPONENTS.put(text, created);
         return created;
     }
