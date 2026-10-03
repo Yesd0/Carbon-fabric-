@@ -1,0 +1,13 @@
+# Gradle
+.gradle/
+build/
+run/
+artifacts/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Local game/profile data
+config/carbonclient/

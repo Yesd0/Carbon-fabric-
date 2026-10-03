@@ -1,0 +1,329 @@
+package dev.carbon.client.ui;
+
+import dev.carbon.client.core.module.Module;
+import dev.carbon.client.core.setting.BoolSetting;
+import dev.carbon.client.core.setting.ColorSetting;
+import dev.carbon.client.core.setting.KeybindSetting;
+import dev.carbon.client.core.setting.ModeSetting;
+import dev.carbon.client.core.setting.NumberSetting;
+import dev.carbon.client.ui.render.CarbonRenderer;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.AbstractButton;
+import net.minecraft.client.input.InputWithModifiers;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
+
+/** Reusable, native Minecraft widgets styled with the Carbon theme. */
+public final class CarbonComponents {
+    private CarbonComponents() {
+    }
+
+    public abstract static class Widget extends AbstractButton {
+        private final String label;
+        private float hoverAmount;
+        private long lastAnimationNanos;
+
+        protected Widget(int x, int y, int width, int height, String label) {
+            super(x, y, width, height, Component.literal(label));
+            this.label = label;
+            this.lastAnimationNanos = System.nanoTime();
+        }
+
+        protected final String label() {
+            return label;
+        }
+
+        protected final float animateHover() {
+            long now = System.nanoTime();
+            long elapsed = now - lastAnimationNanos;
+            lastAnimationNanos = now;
+            hoverAmount = CarbonAnimation.approach(hoverAmount, isHovered() ? 1.0f : 0.0f,
+                    elapsed, 0.11f);
+            return hoverAmount;
+        }
+
+        protected final void drawSurface(GuiGraphicsExtractor graphics, int normal, int highlighted) {
+            int color = CarbonTheme.mix(normal, highlighted, animateHover());
+            CarbonRenderer.roundedRect(graphics, getX(), getY(), getWidth(), getHeight(), 7.0f, color);
+        }
+
+        protected final void drawLabel(GuiGraphicsExtractor graphics, String text, int color, int inset) {
+            var font = Minecraft.getInstance().font;
+            int textY = getY() + (getHeight() - font.lineHeight) / 2;
+            graphics.text(font, text, getX() + inset, textY, color, false);
+        }
+
+        protected final void drawCenteredLabel(GuiGraphicsExtractor graphics, String text, int color) {
+            var font = Minecraft.getInstance().font;
+            int textX = getX() + (getWidth() - font.width(text)) / 2;
+            int textY = getY() + (getHeight() - font.lineHeight) / 2;
+            graphics.text(font, text, textX, textY, color, false);
+        }
+
+        protected final void beginTextLayer(GuiGraphicsExtractor graphics) {
+            graphics.nextStratum();
+        }
+    }
+
+    public static final class Button extends Widget {
+        private final Runnable action;
+        private boolean accent;
+        private final boolean centered;
+
+        public Button(int x, int y, int width, int height, String label, Runnable action,
+                      boolean accent, boolean centered) {
+            super(x, y, width, height, label);
+            this.action = action;
+            this.accent = accent;
+            this.centered = centered;
+        }
+
+        public void setAccent(boolean accent) {
+            this.accent = accent;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int normal = accent ? CarbonTheme.ACCENT_DEEP : CarbonTheme.PANEL_RAISED;
+            int hover = accent ? CarbonTheme.ACCENT : CarbonTheme.PANEL_HOVER;
+            drawSurface(graphics, normal, hover);
+            beginTextLayer(graphics);
+            int textColor = accent ? CarbonTheme.TEXT : CarbonTheme.TEXT_MUTED;
+            if (centered) {
+                drawCenteredLabel(graphics, label(), textColor);
+            } else {
+                drawLabel(graphics, label(), textColor, 10);
+            }
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            action.run();
+        }
+    }
+
+    /** A compact switch bound either to a module's enabled state or a BoolSetting. */
+    public static final class Toggle extends Widget {
+        private final Module module;
+        private final BoolSetting setting;
+
+        public Toggle(int x, int y, int width, int height, Module module) {
+            super(x, y, width, height, module.name());
+            this.module = module;
+            this.setting = null;
+        }
+
+        public Toggle(int x, int y, int width, int height, BoolSetting setting) {
+            super(x, y, width, height, setting.label());
+            this.module = null;
+            this.setting = setting;
+        }
+
+        private boolean value() {
+            return module != null ? module.enabled() : setting.enabled();
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            boolean enabled = value();
+            drawSurface(graphics, CarbonTheme.PANEL_RAISED, CarbonTheme.PANEL_HOVER);
+
+            int trackX = getX() + getWidth() - 38;
+            int trackY = getY() + (getHeight() - 16) / 2;
+            CarbonRenderer.roundedRect(graphics, trackX, trackY, 30, 16, 8.0f,
+                    enabled ? CarbonTheme.ACCENT_DEEP : CarbonTheme.TRACK_OFF);
+            int knobX = enabled ? trackX + 16 : trackX + 2;
+            CarbonRenderer.roundedRect(graphics, knobX, trackY + 2, 12, 12, 6.0f,
+                    enabled ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED);
+
+            beginTextLayer(graphics);
+            if (getWidth() > 72) {
+                drawLabel(graphics, label(), CarbonTheme.TEXT, 10);
+            }
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            if (module != null) {
+                module.toggle();
+            } else {
+                setting.toggle();
+            }
+        }
+    }
+
+    /** Number-setting slider. Mouse clicks and drags map directly onto the setting range. */
+    public static final class Slider extends Widget {
+        private final NumberSetting setting;
+
+        public Slider(int x, int y, int width, int height, NumberSetting setting) {
+            super(x, y, width, height, setting.label());
+            this.setting = setting;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawSurface(graphics, CarbonTheme.PANEL_RAISED, CarbonTheme.PANEL_HOVER);
+
+            int trackX = getX() + 10;
+            int trackWidth = Math.max(1, getWidth() - 20);
+            int trackY = getY() + getHeight() - 9;
+            CarbonRenderer.roundedRect(graphics, trackX, trackY, trackWidth, 3, 1.5f,
+                    CarbonTheme.TRACK_OFF);
+            double range = setting.maximum() - setting.minimum();
+            double fraction = range <= 0.0 ? 0.0 : (setting.get() - setting.minimum()) / range;
+            int fillWidth = (int) Math.round(trackWidth * Math.max(0.0, Math.min(1.0, fraction)));
+            if (fillWidth > 0) {
+                CarbonRenderer.roundedRect(graphics, trackX, trackY, fillWidth, 3, 1.5f,
+                        CarbonTheme.ACCENT);
+            }
+
+            beginTextLayer(graphics);
+            var font = Minecraft.getInstance().font;
+            String value = setting.displayValue();
+            int textY = getY() + 5;
+            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            graphics.text(font, value, getX() + getWidth() - font.width(value) - 10,
+                    textY, CarbonTheme.ACCENT, false);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            setting.set(setting.get() + setting.step());
+        }
+
+        @Override
+        public void onClick(MouseButtonEvent event, boolean doubleClick) {
+            if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                setFromMouse(event.x());
+            } else {
+                super.onClick(event, doubleClick);
+            }
+        }
+
+        @Override
+        protected void onDrag(MouseButtonEvent event, double deltaX, double deltaY) {
+            if (event.button() == GLFW.GLFW_MOUSE_BUTTON_LEFT) {
+                setFromMouse(event.x());
+            }
+        }
+
+        private void setFromMouse(double mouseX) {
+            int trackX = getX() + 10;
+            int trackWidth = Math.max(1, getWidth() - 20);
+            setting.setFromFraction((mouseX - trackX) / trackWidth);
+        }
+    }
+
+    /** Click-to-cycle control for a ModeSetting. */
+    public static final class ModeButton extends Widget {
+        private final ModeSetting setting;
+
+        public ModeButton(int x, int y, int width, int height, ModeSetting setting) {
+            super(x, y, width, height, setting.label());
+            this.setting = setting;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawSurface(graphics, CarbonTheme.PANEL_RAISED, CarbonTheme.PANEL_HOVER);
+            beginTextLayer(graphics);
+            var font = Minecraft.getInstance().font;
+            String mode = setting.get();
+            int textY = getY() + (getHeight() - font.lineHeight) / 2;
+            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            graphics.text(font, mode, getX() + getWidth() - font.width(mode) - 10,
+                    textY, CarbonTheme.ACCENT, false);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            setting.cycle();
+        }
+    }
+
+    /** Palette swatch that cycles through a small set of useful ARGB colors. */
+    public static final class ColorButton extends Widget {
+        private static final int[] PALETTE = {
+                0xFFFFFFFF,
+                CarbonTheme.ACCENT,
+                0xFFFFD166,
+                0xFFFF7777,
+                0xFF77A8FF
+        };
+
+        private final ColorSetting setting;
+
+        public ColorButton(int x, int y, int width, int height, ColorSetting setting) {
+            super(x, y, width, height, setting.label());
+            this.setting = setting;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawSurface(graphics, CarbonTheme.PANEL_RAISED, CarbonTheme.PANEL_HOVER);
+            int swatchWidth = Math.min(34, Math.max(20, getWidth() / 5));
+            int swatchX = getX() + getWidth() - swatchWidth - 9;
+            int swatchY = getY() + (getHeight() - 14) / 2;
+            CarbonRenderer.roundedRect(graphics, swatchX, swatchY, swatchWidth, 14, 5.0f, setting.get());
+            beginTextLayer(graphics);
+            drawLabel(graphics, label(), CarbonTheme.TEXT, 10);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            int current = setting.get();
+            for (int index = 0; index < PALETTE.length; index++) {
+                if (PALETTE[index] == current) {
+                    setting.set(PALETTE[(index + 1) % PALETTE.length]);
+                    return;
+                }
+            }
+            setting.set(PALETTE[0]);
+        }
+    }
+
+    /** Press-to-rebind control; CarbonDemoScreen completes the capture via client input events. */
+    public static final class KeybindButton extends Widget {
+        private final KeybindSetting setting;
+        private final Runnable beginCapture;
+        private boolean listening;
+
+        public KeybindButton(int x, int y, int width, int height, KeybindSetting setting, Runnable beginCapture) {
+            super(x, y, width, height, setting.label());
+            this.setting = setting;
+            this.beginCapture = beginCapture;
+        }
+
+        public KeybindSetting setting() {
+            return setting;
+        }
+
+        public void setListening(boolean listening) {
+            this.listening = listening;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int base = listening ? CarbonTheme.ACCENT_MUTED : CarbonTheme.PANEL_RAISED;
+            int hover = listening ? CarbonTheme.ACCENT_DEEP : CarbonTheme.PANEL_HOVER;
+            drawSurface(graphics, base, hover);
+            beginTextLayer(graphics);
+
+            var font = Minecraft.getInstance().font;
+            String value = listening ? "Press a key or mouse button" : setting.displayValue();
+            int textY = getY() + (getHeight() - font.lineHeight) / 2;
+            graphics.text(font, label(), getX() + 10, textY, CarbonTheme.TEXT, false);
+            graphics.text(font, value, getX() + getWidth() - font.width(value) - 10,
+                    textY, listening ? CarbonTheme.WARNING : CarbonTheme.ACCENT, false);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            listening = true;
+            beginCapture.run();
+        }
+    }
+}
