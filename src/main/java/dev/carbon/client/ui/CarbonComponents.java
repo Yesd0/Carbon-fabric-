@@ -6,7 +6,7 @@ import dev.carbon.client.core.setting.ColorSetting;
 import dev.carbon.client.core.setting.KeybindSetting;
 import dev.carbon.client.core.setting.ModeSetting;
 import dev.carbon.client.core.setting.NumberSetting;
-import dev.carbon.client.ui.render.CarbonRenderer;
+import dev.carbon.client.ui.render.CarbonGlass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractButton;
@@ -52,7 +52,7 @@ public final class CarbonComponents {
 
         protected final void drawSurface(GuiGraphicsExtractor graphics, int normal, int highlighted) {
             int color = CarbonTheme.mix(normal, highlighted, animateHover());
-            CarbonRenderer.roundedRect(graphics, getX(), getY(), getWidth(), getHeight(), 7.0f, color);
+            CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(), 7.0f, color);
         }
 
         protected final void drawLabel(GuiGraphicsExtractor graphics, String text, int color, int inset) {
@@ -114,14 +114,14 @@ public final class CarbonComponents {
         private final Module module;
         private final Runnable openOptions;
         private final String categoryLabel;
-        private final String iconLabel;
+        private final String iconName;
 
         public ModuleCard(int x, int y, int width, int height, Module module, Runnable openOptions) {
             super(x, y, width, height, module.name());
             this.module = module;
             this.openOptions = openOptions;
             this.categoryLabel = module.category().label().toUpperCase(java.util.Locale.ROOT);
-            this.iconLabel = createIconLabel(module);
+            this.iconName = iconFor(module);
         }
 
         public Module module() {
@@ -131,7 +131,7 @@ public final class CarbonComponents {
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
             int surface = CarbonTheme.mix(CarbonTheme.CARD, CarbonTheme.CARD_HOVER, animateHover());
-            CarbonRenderer.outline(graphics, getX(), getY(), getWidth(), getHeight(),
+            CarbonGlass.outlineTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
                     12.0f, CarbonTheme.BORDER_SOFT, surface);
 
             int stateHeight = statusHeight();
@@ -142,13 +142,14 @@ public final class CarbonComponents {
             int iconX = getX() + (getWidth() - iconSize) / 2;
             int iconY = getY() + 10;
             int iconSurface = module.enabled() ? CarbonTheme.ACCENT_MUTED : CarbonTheme.PANEL_RAISED;
-            CarbonRenderer.outline(graphics, iconX, iconY, iconSize, iconSize, 12.0f,
+            CarbonGlass.outlineTintedRect(graphics, iconX, iconY, iconSize, iconSize, 12.0f,
                     CarbonTheme.BORDER_SOFT, iconSurface);
 
             var font = Minecraft.getInstance().font;
             graphics.nextStratum();
-            CarbonText.centered(graphics, font, iconLabel, getX() + getWidth() / 2,
-                    iconY + (iconSize - font.lineHeight) / 2, CarbonTheme.TEXT, false);
+            CarbonIcons.drawGui(graphics, iconName,
+                    getX() + (getWidth() - 22) / 2, iconY + (iconSize - 22) / 2,
+                    22, module.enabled() ? CarbonTheme.TEXT : 0xB3F1F7F2);
             int titleY = iconY + iconSize + 7;
             CarbonText.centered(graphics, font, module.name(), getX() + getWidth() / 2,
                     titleY, CarbonTheme.TEXT, false);
@@ -159,23 +160,24 @@ public final class CarbonComponents {
             int rowWidth = getWidth() - 2;
             int gearWidth = Math.min(36, Math.max(26, rowWidth / 5));
             int gearX = rowX + rowWidth - gearWidth;
-            CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, optionsHeight,
+            CarbonGlass.drawTintedRect(graphics, rowX, optionsY, rowWidth, optionsHeight,
                     0.0f, CarbonTheme.PANEL_RAISED);
-            CarbonRenderer.roundedRect(graphics, rowX, optionsY, rowWidth, 1, 0.5f,
+            CarbonGlass.drawTintedRect(graphics, rowX, optionsY, rowWidth, 1, 0.5f,
                     CarbonTheme.BORDER_SOFT);
-            CarbonRenderer.roundedRect(graphics, gearX, optionsY, gearWidth, optionsHeight,
+            CarbonGlass.drawTintedRect(graphics, gearX, optionsY, gearWidth, optionsHeight,
                     0.0f, CarbonTheme.PANEL_HOVER);
-            CarbonRenderer.roundedRect(graphics, gearX, optionsY, 1, optionsHeight,
+            CarbonGlass.drawTintedRect(graphics, gearX, optionsY, 1, optionsHeight,
                     0.5f, CarbonTheme.BORDER_SOFT);
             graphics.nextStratum();
             int optionsCenterX = rowX + (rowWidth - gearWidth) / 2;
             CarbonText.centered(graphics, font, "OPTIONS", optionsCenterX,
                     optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.TEXT, false);
-            CarbonText.centered(graphics, font, "⚙", gearX + gearWidth / 2,
-                    optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.ACCENT, false);
+            CarbonIcons.drawGui(graphics, "settings",
+                    gearX + (gearWidth - 18) / 2, optionsY + (optionsHeight - 18) / 2,
+                    18, CarbonTheme.ACCENT);
 
             int stateColor = module.enabled() ? CarbonTheme.SUCCESS_SURFACE : CarbonTheme.ERROR_SURFACE;
-            CarbonRenderer.roundedRect(graphics, rowX, stateY, rowWidth, stateHeight,
+            CarbonGlass.drawTintedRect(graphics, rowX, stateY, rowWidth, stateHeight,
                     0.0f, stateColor);
             graphics.nextStratum();
             CarbonText.centered(graphics, font, module.enabled() ? "ENABLED" : "DISABLED",
@@ -207,13 +209,13 @@ public final class CarbonComponents {
             return Math.max(22, Math.min(31, getHeight() / 7));
         }
 
-        private static String createIconLabel(Module module) {
+        private static String iconFor(Module module) {
             return switch (module.id()) {
-                case "fps" -> "FPS";
-                case "cps" -> "CPS";
-                case "keystrokes" -> "KEYS";
-                case "zoom" -> "ZOOM";
-                default -> module.name().toUpperCase(java.util.Locale.ROOT);
+                case "fps" -> "gauge";
+                case "cps" -> "mouse-pointer-click";
+                case "keystrokes" -> "keyboard";
+                case "zoom" -> "zoom-in";
+                default -> "layout-grid";
             };
         }
     }
@@ -246,10 +248,10 @@ public final class CarbonComponents {
 
             int trackX = getX() + getWidth() - 38;
             int trackY = getY() + (getHeight() - 16) / 2;
-            CarbonRenderer.roundedRect(graphics, trackX, trackY, 30, 16, 8.0f,
+            CarbonGlass.drawTintedRect(graphics, trackX, trackY, 30, 16, 8.0f,
                     enabled ? CarbonTheme.ACCENT_DEEP : CarbonTheme.TRACK_OFF);
             int knobX = enabled ? trackX + 16 : trackX + 2;
-            CarbonRenderer.roundedRect(graphics, knobX, trackY + 2, 12, 12, 6.0f,
+            CarbonGlass.drawTintedRect(graphics, knobX, trackY + 2, 12, 12, 6.0f,
                     enabled ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED);
 
             beginTextLayer(graphics);
@@ -287,7 +289,7 @@ public final class CarbonComponents {
             int trackX = getX() + 10;
             int trackWidth = Math.max(1, getWidth() - 20);
             int trackY = getY() + getHeight() - 9;
-            CarbonRenderer.roundedRect(graphics, trackX, trackY, trackWidth, 3, 1.5f,
+            CarbonGlass.drawTintedRect(graphics, trackX, trackY, trackWidth, 3, 1.5f,
                     CarbonTheme.TRACK_OFF);
             double currentValue = setting.get();
             if (Double.compare(currentValue, cachedValue) != 0) {
@@ -299,7 +301,7 @@ public final class CarbonComponents {
             double fraction = range <= 0.0 ? 0.0 : (currentValue - setting.minimum()) / range;
             int fillWidth = (int) Math.round(trackWidth * Math.max(0.0, Math.min(1.0, fraction)));
             if (fillWidth > 0) {
-                CarbonRenderer.roundedRect(graphics, trackX, trackY, fillWidth, 3, 1.5f,
+                CarbonGlass.drawTintedRect(graphics, trackX, trackY, fillWidth, 3, 1.5f,
                         CarbonTheme.ACCENT);
             }
 
@@ -389,7 +391,7 @@ public final class CarbonComponents {
             int swatchWidth = Math.min(34, Math.max(20, getWidth() / 5));
             int swatchX = getX() + getWidth() - swatchWidth - 9;
             int swatchY = getY() + (getHeight() - 14) / 2;
-            CarbonRenderer.roundedRect(graphics, swatchX, swatchY, swatchWidth, 14, 5.0f, setting.get());
+            CarbonGlass.drawTintedRect(graphics, swatchX, swatchY, swatchWidth, 14, 5.0f, setting.get());
             beginTextLayer(graphics);
             drawLabel(graphics, label(), CarbonTheme.TEXT, 10);
         }

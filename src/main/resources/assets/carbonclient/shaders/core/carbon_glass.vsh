@@ -16,11 +16,11 @@ in vec4 Color;
 
 out vec2 localUv;
 out vec4 vertexColor;
-flat out float cornerRadius;
+flat out float shapeData;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position.xy, 0.0, 1.0);
     localUv = UV0;
     vertexColor = Color;
-    cornerRadius = Position.z;
+    shapeData = Position.z;
 }

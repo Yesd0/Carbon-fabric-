@@ -5,13 +5,14 @@ import dev.carbon.client.core.event.EventBus;
 import dev.carbon.client.core.event.KeyInputEvent;
 import dev.carbon.client.core.event.MouseInputEvent;
 import dev.carbon.client.core.module.ModuleManager;
+import dev.carbon.client.ui.render.CarbonGlass;
 import dev.carbon.client.ui.render.CarbonRenderPipelines;
 import net.minecraft.client.Minecraft;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Carbon UI registration and the development/demo-screen keybind. */
+/** Registers Carbon's rendering hooks and the Part A visual-test keybind. */
 public final class CarbonUI {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
 
@@ -32,7 +33,8 @@ public final class CarbonUI {
         try {
             CarbonRenderPipelines.register();
         } catch (Throwable failure) {
-            LOGGER.error("Carbon SDF pipeline registration failed; Carbon UI will use native rectangular fallback", failure);
+            CarbonGlass.reportFailure("SDF glass pipeline registration failed", failure);
+            LOGGER.error("Carbon SDF pipeline registration failed; no flat fallback will be used", failure);
         }
 
         eventBus.subscribe(KeyInputEvent.class, CarbonUI::onKeyInput);
@@ -50,7 +52,7 @@ public final class CarbonUI {
             return;
         }
         if (event.keyCode() == GLFW.GLFW_KEY_F8 && event.action() == GLFW.GLFW_PRESS && client.gui.screen() == null) {
-            client.gui.setScreen(new CarbonDemoScreen(moduleManager, configManager, null));
+            client.gui.setScreen(new CarbonGlassTestScreen(null));
         }
     }
 

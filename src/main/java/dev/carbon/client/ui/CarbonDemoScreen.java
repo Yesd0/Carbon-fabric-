@@ -12,7 +12,7 @@ import dev.carbon.client.core.setting.KeybindSetting;
 import dev.carbon.client.core.setting.ModeSetting;
 import dev.carbon.client.core.setting.NumberSetting;
 import dev.carbon.client.core.setting.Setting;
-import dev.carbon.client.ui.render.CarbonRenderer;
+import dev.carbon.client.ui.render.CarbonGlass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
@@ -106,16 +106,16 @@ public final class CarbonDemoScreen extends CarbonScreen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
         // A low-opacity scrim keeps the world visible through the native menu blur.
-        CarbonRenderer.roundedRect(graphics, 0, 0, width, height, 0.0f, CarbonTheme.SCRIM);
-        CarbonRenderer.roundedRect(graphics, panelX + 1, panelY + 5, panelWidth, panelHeight,
+        CarbonGlass.drawTintedRect(graphics, 0, 0, width, height, 0.0f, CarbonTheme.SCRIM);
+        CarbonGlass.drawTintedRect(graphics, panelX + 1, panelY + 5, panelWidth, panelHeight,
                 18.0f, 0x4A000000);
-        CarbonRenderer.outline(graphics, panelX, panelY, panelWidth, panelHeight,
+        CarbonGlass.outlineTintedRect(graphics, panelX, panelY, panelWidth, panelHeight,
                 18.0f, CarbonTheme.BORDER, CarbonTheme.FRAME);
-        CarbonRenderer.roundedRect(graphics, panelX + 1, panelY + 1, panelWidth - 2,
+        CarbonGlass.drawTintedRect(graphics, panelX + 1, panelY + 1, panelWidth - 2,
                 HEADER_HEIGHT, 17.0f, 0xAA111915);
-        CarbonRenderer.roundedRect(graphics, panelX + 12, sidebarY, sidebarWidth - 22,
+        CarbonGlass.drawTintedRect(graphics, panelX + 12, sidebarY, sidebarWidth - 22,
                 sidebarHeight, 13.0f, CarbonTheme.PANEL);
-        CarbonRenderer.roundedRect(graphics, panelX + sidebarWidth, panelY + HEADER_HEIGHT,
+        CarbonGlass.drawTintedRect(graphics, panelX + sidebarWidth, panelY + HEADER_HEIGHT,
                 1, panelHeight - HEADER_HEIGHT - 1, 0.5f, CarbonTheme.BORDER_SOFT);
 
         if (activeView == View.MODULES) {
@@ -148,6 +148,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
         }
 
         super.extractRenderState(graphics, mouseX, mouseY, delta);
+        CarbonGlass.drawFailureLabelGui(graphics);
     }
 
     @Override
@@ -461,9 +462,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
         int searchWidth = Math.max(72, contentX + contentWidth - (stackedToolbar ? contentX : lastFilterEnd() + 8));
         int searchY = stackedToolbar ? toolbarY + 32 : toolbarY;
         int searchX = stackedToolbar ? contentX : lastFilterEnd() + 8;
-        CarbonRenderer.roundedRect(graphics, searchX, searchY, searchWidth, 26,
+        CarbonGlass.drawTintedRect(graphics, searchX, searchY, searchWidth, 26,
                 7.0f, CarbonTheme.PANEL_RAISED);
-        CarbonRenderer.outline(graphics, searchX, searchY, searchWidth, 26,
+        CarbonGlass.outlineTintedRect(graphics, searchX, searchY, searchWidth, 26,
                 7.0f, CarbonTheme.BORDER_SOFT, CarbonTheme.PANEL_RAISED);
         if (visibleModuleCount == 0) {
             graphics.nextStratum();
@@ -473,9 +474,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
     }
 
     private void drawSettingsSurface(GuiGraphicsExtractor graphics) {
-        CarbonRenderer.roundedRect(graphics, contentX, toolbarY, contentWidth,
+        CarbonGlass.drawTintedRect(graphics, contentX, toolbarY, contentWidth,
                 panelY + panelHeight - toolbarY - 14, 14.0f, CarbonTheme.PANEL);
-        CarbonRenderer.outline(graphics, contentX, toolbarY, contentWidth,
+        CarbonGlass.outlineTintedRect(graphics, contentX, toolbarY, contentWidth,
                 panelY + panelHeight - toolbarY - 14, 14.0f, CarbonTheme.BORDER_SOFT, CarbonTheme.PANEL);
         if (selectedModule == null) {
             graphics.nextStratum();

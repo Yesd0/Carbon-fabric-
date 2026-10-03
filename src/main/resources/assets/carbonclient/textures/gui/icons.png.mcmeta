@@ -1,0 +1,11 @@
+{
+  "texture": {
+    "blur": true,
+    "clamp": true,
+    "mipmaps": [
+      1,
+      2,
+      3
+    ]
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "atlas": "carbonclient:textures/gui/icons.png",
+  "width": 672,
+  "height": 336,
+  "iconSize": 96,
+  "cellSize": 112,
+  "columns": 6,
+  "rows": 3,
+  "icons": {
+    "layout-grid": {
+      "x": 8,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "layout-dashboard": {
+      "x": 120,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "user": {
+      "x": 232,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "settings": {
+      "x": 344,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "search": {
+      "x": 456,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "x": {
+      "x": 568,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "keyboard": {
+      "x": 8,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "mouse-pointer-click": {
+      "x": 120,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "gauge": {
+      "x": 232,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "zoom-in": {
+      "x": 344,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "shield": {
+      "x": 456,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "flask-conical": {
+      "x": 568,
+      "y": 120,
+      "width": 96,
+      "height": 96
+    },
+    "eye": {
+      "x": 8,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "map-pin": {
+      "x": 120,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "crosshair": {
+      "x": 232,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "blend": {
+      "x": 344,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "sliders-horizontal": {
+      "x": 456,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    }
+  }
+}

@@ -6,25 +6,23 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
 
-/** Registration for Carbon's GUI-only Blaze3D pipelines. */
+/** Registration for Carbon's retained SDF glass pipeline. */
 public final class CarbonRenderPipelines {
     private static final Identifier PIPELINE_ID = Identifier.fromNamespaceAndPath(
-            "carbonclient", "pipeline/carbon_sdf"
-    );
+            "carbonclient", "pipeline/carbon_glass");
     private static final Identifier SHADER_ID = Identifier.fromNamespaceAndPath(
-            "carbonclient", "core/carbon_sdf"
-    );
+            "carbonclient", "core/carbon_glass");
 
-    private static RenderPipeline sdfPipeline;
+    private static RenderPipeline glassPipeline;
 
     private CarbonRenderPipelines() {
     }
 
     public static synchronized void register() {
-        if (sdfPipeline != null) {
+        if (glassPipeline != null) {
             return;
         }
-        sdfPipeline = RenderPipelines.register(
+        glassPipeline = RenderPipelines.register(
                 RenderPipeline.builder(RenderPipelines.GUI_SNIPPET)
                         .withLocation(PIPELINE_ID)
                         .withVertexShader(SHADER_ID)
@@ -36,7 +34,7 @@ public final class CarbonRenderPipelines {
         );
     }
 
-    public static RenderPipeline sdf() {
-        return sdfPipeline;
+    public static RenderPipeline glass() {
+        return glassPipeline;
     }
 }
