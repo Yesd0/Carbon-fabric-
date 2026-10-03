@@ -193,7 +193,7 @@ public final class CarbonGlass {
         }
         int scaleCode = Math.round(pixelScale * SCALE_STEP);
         float shapeData = mode * MODE_STEP + scaleCode * SCALE_STEP + radius;
-        graphics.submitGuiElementRenderState(
+        graphics.guiRenderState.addGuiElement(
                 new CarbonShapeState(graphics.pose(), pipeline, x, y, width, height, shapeData, argb)
         );
     }
