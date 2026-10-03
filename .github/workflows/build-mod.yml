@@ -11,25 +11,59 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Java 25
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
           cache: gradle
 
       - name: Build mod
-        run: ./gradlew --no-daemon clean build
+        id: gradle
+        shell: bash
+        run: |
+          set +e
+          ./gradlew --no-daemon clean build --stacktrace > build.log 2>&1
+          build_status=$?
+          cat build.log
+          if [ "$build_status" -ne 0 ]; then
+            python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          lines = Path("build.log").read_text(errors="replace").splitlines()
+          detail = "\n".join(lines[-80:])[-12000:]
+          summary = Path(os.environ["GITHUB_STEP_SUMMARY"])
+          with summary.open("a", encoding="utf-8") as stream:
+              stream.write("### Gradle build failure\n\n```text\n")
+              stream.write(detail)
+              stream.write("\n```\n")
+
+          escaped = detail.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+          print(f"::error title=Gradle build failure::{escaped}")
+          PY
+            exit "$build_status"
+          fi
 
       - name: Upload mod JAR
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: carbonclient-1.0.0
           path: build/libs/*.jar
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload Gradle log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: carbonclient-build-log
+          path: build.log
+          if-no-files-found: ignore
+          retention-days: 7
