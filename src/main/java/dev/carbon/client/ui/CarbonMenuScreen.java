@@ -18,12 +18,11 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.model.Model;
-import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.renderer.RenderPipelines;
-import net.minecraft.client.renderer.rendertype.RenderTypes;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.world.item.component.ResolvableProfile;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,11 +36,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-/** Compact, opaque Carbon module menu. All cards and controls edit live module/config objects. */
+/** Large, rounded Carbon module menu. All cards and controls edit live module/config objects. */
 public final class CarbonMenuScreen extends CarbonScreen {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
-    private static final int DESIGN_PANEL_WIDTH = 1040;
-    private static final int DESIGN_PANEL_HEIGHT = 660;
+    private static final int DESIGN_PANEL_WIDTH = 1400;
+    private static final int DESIGN_PANEL_HEIGHT = 840;
     private static final int[] COLOR_CHOICES = {
             0xFFFFFFFF, 0xFFCACBD0, 0xFF8A8D93, 0xFF44474D, 0xFF15171A
     };
@@ -69,8 +68,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
     private EditBox profileNameBox;
     private String searchQuery = "";
     private String username = "Player";
-    private Identifier skinTexture;
-    private Model.Simple headModel;
+    private ItemStack avatarHeadStack;
     private UUID avatarPlayerId;
     private long nextAvatarRefreshNanos;
     private Category selectedCategory;
@@ -98,6 +96,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
     private Rect accountRect = Rect.EMPTY;
     private Rect avatarRect = Rect.EMPTY;
     private Rect modulesNavRect = Rect.EMPTY;
+    private Rect hudEditorNavRect = Rect.EMPTY;
     private Rect settingsNavRect = Rect.EMPTY;
     private Rect profilesNavRect = Rect.EMPTY;
     private Rect allCategoryRect = Rect.EMPTY;
@@ -170,24 +169,24 @@ public final class CarbonMenuScreen extends CarbonScreen {
         var player = client.player;
         if (player == null) {
             avatarPlayerId = null;
-            skinTexture = null;
-            headModel = null;
+            avatarHeadStack = null;
             return;
         }
 
         UUID playerId = player.getUUID();
-        if (Objects.equals(avatarPlayerId, playerId) && skinTexture != null && headModel != null) {
+        if (Objects.equals(avatarPlayerId, playerId) && avatarHeadStack != null && !avatarHeadStack.isEmpty()) {
             return;
         }
         avatarPlayerId = playerId;
-        skinTexture = null;
-        headModel = null;
+        avatarHeadStack = null;
         try {
-            skinTexture = player.getSkin().body().texturePath();
-            headModel = new Model.Simple(client.getEntityModels().bakeLayer(ModelLayers.PLAYER_HEAD),
-                    RenderTypes::entityCutout);
+            // Let Minecraft's normal item renderer resolve the local skin profile on a PLAYER_HEAD.
+            // Unlike a GUI skin quad, the vanilla head item is an actual shaded 3D cube.
+            avatarHeadStack = new ItemStack(Items.PLAYER_HEAD);
+            avatarHeadStack.set(DataComponents.PROFILE,
+                    ResolvableProfile.createResolved(player.getGameProfile()));
         } catch (RuntimeException failure) {
-            LOGGER.warn("Could not prepare the local player's skin head for the Carbon menu", failure);
+            LOGGER.warn("Could not prepare the local player's vanilla 3D head item for the Carbon menu", failure);
         }
     }
 
@@ -195,15 +194,14 @@ public final class CarbonMenuScreen extends CarbonScreen {
         Minecraft client = Minecraft.getInstance();
         var player = client.player;
         if (player == null) {
-            if (avatarPlayerId != null || skinTexture != null || headModel != null) {
+            if (avatarPlayerId != null || avatarHeadStack != null) {
                 avatarPlayerId = null;
-                skinTexture = null;
-                headModel = null;
+                avatarHeadStack = null;
             }
             return;
         }
         boolean playerChanged = !Objects.equals(avatarPlayerId, player.getUUID());
-        boolean avatarUnavailable = skinTexture == null || headModel == null;
+        boolean avatarUnavailable = avatarHeadStack == null || avatarHeadStack.isEmpty();
         if (playerChanged || avatarUnavailable && System.nanoTime() >= nextAvatarRefreshNanos) {
             refreshPlayerIdentity();
         }
@@ -231,7 +229,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
         updateFrameClock();
         refreshAvatarIfNeeded();
 
-        extractPanelSurfaces(graphics);
+        extractPanelSurfaces(graphics, mouseX, mouseY);
         switch (activeView) {
             case MODULES -> extractModuleSurfaces(graphics, mouseX, mouseY);
             case SETTINGS -> extractSettingsSurfaces(graphics, mouseX, mouseY);
@@ -282,10 +280,11 @@ public final class CarbonMenuScreen extends CarbonScreen {
         modulesNavRect = new Rect(navX, navY, navWidth, navHeight);
         settingsNavRect = new Rect(navX, navY + design(45), navWidth, navHeight);
         profilesNavRect = new Rect(navX, navY + design(90), navWidth, navHeight);
-        allCategoryRect = new Rect(navX, panelRect.y() + design(326), navWidth, design(31));
+        hudEditorNavRect = new Rect(navX, navY + design(135), navWidth, navHeight);
+        allCategoryRect = new Rect(navX, panelRect.y() + design(370), navWidth, design(31));
 
         categoryHits.clear();
-        int categoryY = panelRect.y() + design(364);
+        int categoryY = panelRect.y() + design(407);
         int categoryHeight = design(29);
         for (Category category : Category.values()) {
             if (categoryCounts.containsKey(category)) {
@@ -345,23 +344,27 @@ public final class CarbonMenuScreen extends CarbonScreen {
         }
     }
 
-    private void extractPanelSurfaces(GuiGraphicsExtractor graphics) {
-        drawPanel(graphics, panelRect, CarbonTheme.FRAME, CarbonTheme.BORDER_SOFT, design(18));
+    private void extractPanelSurfaces(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        drawPanel(graphics, panelRect, CarbonTheme.FRAME, CarbonTheme.BORDER_SOFT, design(24));
         int accentWidth = Math.round((panelRect.width() - design(48)) * openingProgress);
         if (accentWidth > 0) {
             graphics.fill(panelRect.x() + design(24), panelRect.y() + 1,
                     panelRect.x() + design(24) + accentWidth, panelRect.y() + 2, CarbonTheme.ACCENT_MUTED);
         }
-        drawRounded(graphics, sidebarRect, design(17), CarbonTheme.SIDEBAR);
+        drawRounded(graphics, sidebarRect, design(21), CarbonTheme.SIDEBAR);
         graphics.fill(sidebarRect.right() - 1, panelRect.y() + design(20), sidebarRect.right(),
                 panelRect.bottom() - design(20), CarbonTheme.BORDER_SOFT);
-        drawPanel(graphics, accountRect, CarbonTheme.PANEL, CarbonTheme.BORDER_SOFT, design(11));
+        drawPanel(graphics, accountRect, CarbonTheme.PANEL, CarbonTheme.BORDER_SOFT, design(14));
         drawPanel(graphics, modulesNavRect, activeView == View.MODULES ? CarbonTheme.PANEL_HOVER : CarbonTheme.SIDEBAR,
-                activeView == View.MODULES ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(9));
+                activeView == View.MODULES ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(11));
         drawPanel(graphics, settingsNavRect, activeView == View.SETTINGS ? CarbonTheme.PANEL_HOVER : CarbonTheme.SIDEBAR,
-                activeView == View.SETTINGS ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(9));
+                activeView == View.SETTINGS ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(11));
         drawPanel(graphics, profilesNavRect, activeView == View.PROFILES ? CarbonTheme.PANEL_HOVER : CarbonTheme.SIDEBAR,
-                activeView == View.PROFILES ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(9));
+                activeView == View.PROFILES ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(11));
+        boolean hudEditorHovered = hudEditorNavRect.contains(mouseX, mouseY);
+        drawPanel(graphics, hudEditorNavRect,
+                hudEditorHovered ? CarbonTheme.PANEL_HOVER : CarbonTheme.SIDEBAR,
+                hudEditorHovered ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(11));
         drawPanel(graphics, allCategoryRect, selectedCategory == null ? CarbonTheme.PANEL_RAISED : CarbonTheme.SIDEBAR,
                 selectedCategory == null ? CarbonTheme.BORDER : CarbonTheme.BORDER_SOFT, design(8));
         for (CategoryHit hit : categoryHits) {
@@ -440,7 +443,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
         if (motion.clickPulse > 0.01f) {
             fill = CarbonTheme.mix(fill, CarbonTheme.PANEL_HOVER, motion.clickPulse * 0.42f);
         }
-        drawPanel(graphics, card, fill, border, design(12));
+        drawPanel(graphics, card, fill, border, design(14));
 
         int railWidth = design(3 + 2 * enabled);
         drawRounded(graphics, new Rect(card.x() + design(10), card.y() + design(16), railWidth,
@@ -559,34 +562,27 @@ public final class CarbonMenuScreen extends CarbonScreen {
         if (avatarRect.width() <= 0 || avatarRect.height() <= 0) {
             return;
         }
-        boolean modelSubmitted = false;
-        if (skinTexture != null && headModel != null) {
+        if (avatarHeadStack != null && !avatarHeadStack.isEmpty()) {
             try {
-                int size = avatarRect.width();
-                float idleTurn = (float) Math.sin((System.nanoTime() - openedAtNanos) / 2_000_000_000.0) * 7.0f;
-                // A deliberate three-quarter angle makes the cube's depth obvious while keeping
-                // the local skin and its outer hat layer centered in the compact portrait.
-                graphics.skin(headModel, skinTexture, Math.max(24.0f, size * 1.05f),
-                        8.0f, 18.0f + idleTurn, 0.0f,
-                        avatarRect.x(), avatarRect.y(), avatarRect.right(), avatarRect.bottom());
-                modelSubmitted = true;
+                int size = Math.min(avatarRect.width(), avatarRect.height());
+                float itemScale = size / 16.0f;
+                graphics.pose().pushMatrix();
+                try {
+                    graphics.pose().translate(avatarRect.x() + (avatarRect.width() - size) / 2.0f,
+                            avatarRect.y() + (avatarRect.height() - size) / 2.0f);
+                    graphics.pose().scale(itemScale, itemScale);
+                    graphics.fakeItem(avatarHeadStack, 0, 0);
+                } finally {
+                    graphics.pose().popMatrix();
+                }
+                return;
             } catch (RuntimeException failure) {
-                LOGGER.warn("Could not render the local player's 3D skin head in the Carbon menu", failure);
+                LOGGER.warn("Could not extract the local player's vanilla 3D head item in the Carbon menu", failure);
             }
         }
 
-        // Keep a face crop only as a graceful fallback when the model or skin is unavailable.
-        if (!modelSubmitted && skinTexture != null) {
-            int size = Math.min(avatarRect.width(), avatarRect.height());
-            graphics.blit(RenderPipelines.GUI_TEXTURED, skinTexture,
-                    avatarRect.x(), avatarRect.y(), 8.0f, 8.0f, size, size, 8, 8, 64, 64, 0xFFFFFFFF);
-            graphics.blit(RenderPipelines.GUI_TEXTURED, skinTexture,
-                    avatarRect.x(), avatarRect.y(), 40.0f, 8.0f, size, size, 8, 8, 64, 64, 0xFFFFFFFF);
-        } else if (!modelSubmitted) {
-            CarbonIcons.drawGui(graphics, "user", avatarRect.x() + design(11),
-                    avatarRect.y() + design(11), design(26), CarbonTheme.TEXT_MUTED);
-        }
-        graphics.outline(avatarRect.x(), avatarRect.y(), avatarRect.width(), avatarRect.height(), CarbonTheme.BORDER);
+        CarbonIcons.drawGui(graphics, "user", avatarRect.x() + design(11),
+                avatarRect.y() + design(11), design(26), CarbonTheme.TEXT_MUTED);
     }
 
     private void extractSidebarText(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -605,6 +601,8 @@ public final class CarbonMenuScreen extends CarbonScreen {
         drawNavLabel(graphics, "layout-grid", "Modules", modulesNavRect, activeView == View.MODULES);
         drawNavLabel(graphics, "sliders-horizontal", "Settings", settingsNavRect, activeView == View.SETTINGS);
         drawNavLabel(graphics, "user", "Profiles", profilesNavRect, activeView == View.PROFILES);
+        drawNavLabel(graphics, "layout-dashboard", "HUD Editor", hudEditorNavRect,
+                hudEditorNavRect.contains(mouseX, mouseY));
         text(graphics, "CATEGORIES", allCategoryRect.x() + design(4), allCategoryRect.y() - design(20),
                 8, CarbonTheme.TEXT_DIM, CarbonText.Weight.SEMIBOLD);
         drawCategoryLabel(graphics, "All modules", allCategoryRect, selectedCategory == null,
@@ -1166,6 +1164,10 @@ public final class CarbonMenuScreen extends CarbonScreen {
         }
         if (profilesNavRect.contains(mouseX, mouseY)) {
             setView(View.PROFILES);
+            return true;
+        }
+        if (hudEditorNavRect.contains(mouseX, mouseY)) {
+            Minecraft.getInstance().gui.setScreen(new CarbonHudEditorScreen(modules.modules(), this));
             return true;
         }
         if (activeView == View.MODULES) {

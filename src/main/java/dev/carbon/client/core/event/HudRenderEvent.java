@@ -20,6 +20,14 @@ public final class HudRenderEvent {
         this.height = graphics.guiHeight();
     }
 
+    /** Prepares the same render context for editor previews that are extracted by a Screen. */
+    public void prepareForEditor(GuiGraphicsExtractor graphics) {
+        this.graphics = graphics;
+        this.deltaTracker = null;
+        this.width = graphics.guiWidth();
+        this.height = graphics.guiHeight();
+    }
+
     public GuiGraphicsExtractor graphics() {
         return graphics;
     }

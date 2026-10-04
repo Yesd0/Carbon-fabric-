@@ -15,6 +15,7 @@ import java.util.Map;
 public final class CarbonText {
     public static final float FONT_BASE_SIZE = 16.0f;
     private static final float LEGACY_TEXT_SIZE = 12.0f;
+    private static final float TEXT_SIZE_BOOST = 1.18f;
     private static final int CACHE_LIMIT = 768;
     private static final Map<Weight, Map<String, Component>> COMPONENTS = new EnumMap<>(Weight.class);
     private static boolean customFontEnabled = true;
@@ -93,7 +94,7 @@ public final class CarbonText {
                                   Weight weight, float size, float x, float y, int color, boolean shadow) {
         UiScale.update(net.minecraft.client.Minecraft.getInstance());
         float uiScale = UiScale.uiScale();
-        float physicalSize = Math.max(1.0f, Math.round(size * uiScale));
+        float physicalSize = Math.max(1.0f, Math.round(size * TEXT_SIZE_BOOST * uiScale));
         float scale = physicalSize / (FONT_BASE_SIZE * uiScale);
         drawAtScale(graphics, font, text, weight, scale, UiScale.snap(x), UiScale.snap(y), color, shadow);
     }
@@ -109,7 +110,7 @@ public final class CarbonText {
     public static float widthDesign(Font font, String text, Weight weight, float size) {
         UiScale.update(net.minecraft.client.Minecraft.getInstance());
         float uiScale = UiScale.uiScale();
-        float physicalSize = Math.max(1.0f, Math.round(size * uiScale));
+        float physicalSize = Math.max(1.0f, Math.round(size * TEXT_SIZE_BOOST * uiScale));
         float scale = physicalSize / (FONT_BASE_SIZE * uiScale);
         return font.width(component(text, weight)) * scale;
     }
@@ -135,7 +136,7 @@ public final class CarbonText {
 
     private static float guiTextScale(float designSize) {
         UiScale.update(net.minecraft.client.Minecraft.getInstance());
-        float physicalSize = Math.max(1.0f, Math.round(designSize * UiScale.uiScale()));
+        float physicalSize = Math.max(1.0f, Math.round(designSize * TEXT_SIZE_BOOST * UiScale.uiScale()));
         return physicalSize / (FONT_BASE_SIZE * UiScale.guiScale());
     }
 

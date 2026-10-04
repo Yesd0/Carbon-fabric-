@@ -96,14 +96,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="v1.0.0-test.9"
+          tag="v1.0.0-test.10"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Refusing to overwrite existing release $tag" >&2
             exit 1
           fi
           gh release create "$tag" build/libs/carbonclient-1.0.0.jar \
-            --title "Carbon Client 1.0.0 Smooth Gameplay Menu" \
-            --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. The Carbon menu key is registered in Options → Controls → Key Binds → Carbon Client and defaults to Right Shift. The compact grayscale interface uses solid SDF-rounded surfaces with antialiased edges; it does not paint or blur the full screen, so live gameplay remains visible and continues running. Module cards toggle the live registry entries, each card's gear opens real typed settings, search/categories work on registered modules, and Essentials/PvP/Creator presets update the retained FPS, CPS, Keystrokes, and Zoom starters. It includes saved profiles, the local username and 3D skin-head portrait, persistent UI scale, and bundled Inter bitmap fonts with a Minecraft-font fallback. The F8 glass test, F7 debug overlay, blur helpers, and glass shader remain removed. The JAR is CI-built; in-game verification is still needed. This release is immutable: the workflow refuses to replace an existing test.9 release." \
+            --title "Carbon Client 1.0.0 Rounded Menu & HUD Editor" \
+            --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. The Carbon menu key is registered in Options → Controls → Key Binds → Carbon Client and defaults to Right Shift. The enlarged, crisp grayscale interface uses rounded opaque surfaces and leaves the live, unpaused game visible around it. The local portrait now uses Minecraft's vanilla PLAYER_HEAD item renderer with the current player profile, without a decorative square border. Module cards, real typed settings, search/categories, saved profiles, and Essentials/PvP/Creator presets remain functional for the FPS, CPS, Keystrokes, and Zoom starters. The new in-game HUD editor keeps gameplay visible, lets users drag HUD widgets, resize from the corner or scale controls, enable/disable widgets, and reset layouts; positions and scale persist through the existing config/profile system. UI scale and bundled Inter bitmap fonts with a Minecraft-font fallback remain available. No third-party UI library, glass effect, blur, or full-screen cover is used. The JAR is CI-built; visual and runtime verification in Minecraft is still needed. This release is immutable: the workflow refuses to replace an existing test.10 release." \
             --prerelease --target "$GITHUB_REF_NAME"
 
       - name: Upload mod JAR
