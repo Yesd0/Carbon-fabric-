@@ -18,12 +18,14 @@ public final class UiScale {
     private static float rendererScale = 1.0f;
     private static float designWidth = DESIGN_WIDTH;
     private static float designHeight = DESIGN_HEIGHT;
+    private static float userScaleMultiplier = 1.0f;
+    private static float cachedUserScaleMultiplier = Float.NaN;
     private static boolean initialized;
 
     private UiScale() {
     }
 
-    /** Refreshes cached dimensions. Returns true only when the framebuffer or GUI scale changed. */
+    /** Refreshes cached dimensions and user scale. Returns true whenever a derived scale input changed. */
     public static boolean update(Minecraft minecraft) {
         Window window = minecraft.getWindow();
         int nextGuiScale = Math.max(1, window.getGuiScale());
@@ -32,7 +34,8 @@ public final class UiScale {
         int nextFramebufferHeight = Math.max(1, window.getGuiScaledHeight() * nextGuiScale);
         boolean changed = nextFramebufferWidth != framebufferWidth
                 || nextFramebufferHeight != framebufferHeight
-                || nextGuiScale != guiScale;
+                || nextGuiScale != guiScale
+                || Float.compare(userScaleMultiplier, cachedUserScaleMultiplier) != 0;
 
         if (!initialized || changed) {
             framebufferWidth = nextFramebufferWidth;
@@ -40,8 +43,9 @@ public final class UiScale {
             guiScale = nextGuiScale;
             float resolutionScale = Math.min(framebufferWidth / DESIGN_WIDTH,
                     framebufferHeight / DESIGN_HEIGHT);
-            uiScale = clamp(resolutionScale, MIN_SCALE, MAX_SCALE);
+            uiScale = clamp(resolutionScale * userScaleMultiplier, MIN_SCALE, MAX_SCALE);
             rendererScale = uiScale / guiScale;
+            cachedUserScaleMultiplier = userScaleMultiplier;
             designWidth = framebufferWidth / uiScale;
             designHeight = framebufferHeight / uiScale;
             initialized = true;
@@ -55,6 +59,15 @@ public final class UiScale {
 
     public static int guiScale() {
         return guiScale;
+    }
+
+    public static float userScaleMultiplier() {
+        return userScaleMultiplier;
+    }
+
+    /** Applies a persistent menu preference; refreshes derived layout on the next update. */
+    public static void setUserScaleMultiplier(float multiplier) {
+        userScaleMultiplier = clamp(multiplier, 0.75f, 1.50f);
     }
 
     public static int framebufferWidth() {

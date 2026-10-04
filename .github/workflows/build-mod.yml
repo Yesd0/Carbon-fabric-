@@ -96,12 +96,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="v1.0.0-test.5"
+          tag="v1.0.0-test.6"
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" build/libs/carbonclient-1.0.0.jar --clobber
-          else
-            gh release create "$tag" build/libs/carbonclient-1.0.0.jar --title "Carbon Client 1.0.0 Functional Menu Test" --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. Right Shift opens the Carbon module menu; F8 opens the glass rendering test screen; F7 toggles its layout debug overlay. This build improves menu legibility and contrast, uses Minecraft's standard UI font for dependable text, enlarges the module cards, makes a card click toggle that module, and reserves the gear control for settings. It also includes local-skin avatar rendering, quick presets, saved profiles, search/filtering, and eased card/hover/toggle feedback. The animated test pattern remains F8-only. This is a UI test build; in-game visual validation of this fix is still requested." --prerelease --target "$GITHUB_REF_NAME"
+            echo "Refusing to overwrite existing release $tag" >&2
+            exit 1
           fi
+          gh release create "$tag" build/libs/carbonclient-1.0.0.jar \
+            --title "Carbon Client 1.0.0 Complete Menu Rebuild" \
+            --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. Right Shift opens Carbon's single module menu; F8 opens the separate glass-rendering test screen; F7 toggles layout debug. This rebuild replaces the menu's drawing and hit-testing path with one sidebar-based interface backed by Carbon's live module registry and config. It includes working category/search filters, module enable controls, typed per-module settings, presets, saved profiles, the local username and 3D skin-head portrait (with a visible face fallback), plus a persistent UI scale control. The deliberate solid charcoal theme is the first-run default; the same menu's settings switch to the optional glass finish. The animated test pattern remains F8-only. The JAR is CI-built; in-game verification is still needed. This release is immutable: the workflow refuses to replace an existing test.6 release." \
+            --prerelease --target "$GITHUB_REF_NAME"
 
       - name: Upload mod JAR
         if: success()
