@@ -1,14 +1,23 @@
 {
   "providers": [
     {
-      "type": "ttf",
-      "file": "carbonclient:font/inter_bold.ttf",
-      "shift": [
-        0.0,
-        0.0
-      ],
-      "size": 16,
-      "oversample": 8
+      "type": "space",
+      "advances": {
+        " ": 4
+      }
+    },
+    {
+      "type": "bitmap",
+      "file": "carbonclient:font/inter_bold.png",
+      "ascent": 13,
+      "height": 16,
+      "chars": [
+        " !\"#$%&'()*+,-./012",
+        "3456789:;<=>?@ABCDE",
+        "FGHIJKLMNOPQRSTUVWX",
+        "YZ[\\]^_`abcdefghijk",
+        "lmnopqrstuvwxyz{|}~"
+      ]
     },
     {
       "type": "reference",

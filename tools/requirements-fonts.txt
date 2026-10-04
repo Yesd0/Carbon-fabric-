@@ -1,1 +1,2 @@
-fonttools>=4.66.0
+fontTools>=4.66.0
+Pillow>=10.0.0

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build static Inter weight files and Carbon font providers from the official variable TTF.
+"""Build Carbon's static Inter weights and reliable bitmap font providers.
 
 Requires: python -m pip install -r tools/requirements-fonts.txt
 Source font: tools/font-src/Inter[opsz,wght].ttf (SIL Open Font License).
@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fontTools.ttLib import TTFont
 from fontTools.varLib.instancer import instantiateVariableFont
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "tools/font-src/Inter[opsz,wght].ttf"
@@ -23,8 +24,17 @@ WEIGHTS = (
     ("semibold", "SemiBold", 600),
     ("bold", "Bold", 700),
 )
-BASE_SIZE = 16
-OVERSAMPLE = 8
+
+# Rasterized at 2.25x into alpha atlases. Minecraft's bitmap provider avoids
+# grayscale TTF atlas glitches seen with some shader/render backends.
+BITMAP_COLUMNS = 19
+BITMAP_ROWS = 5
+CELL_WIDTH = 40
+CELL_HEIGHT = 40
+RASTER_SIZE = 36
+BASELINE = 32
+BITMAP_HEIGHT = 16
+BITMAP_ASCENT = 13
 
 
 def set_font_names(font: TTFont, style: str, weight: int) -> None:
@@ -43,21 +53,54 @@ def set_font_names(font: TTFont, style: str, weight: int) -> None:
         names.setName(value, name_id, 1, 0, 0)
 
 
-def write_provider(font_key: str, output: Path) -> None:
+def write_bitmap_provider(font_key: str, font_path: Path, output: Path) -> None:
+    texture_directory = output.parent / "textures" / "font"
+    texture_directory.mkdir(parents=True, exist_ok=True)
+    texture_path = texture_directory / f"inter_{font_key}.png"
+    image = Image.new(
+        "RGBA",
+        (BITMAP_COLUMNS * CELL_WIDTH, BITMAP_ROWS * CELL_HEIGHT),
+        (0, 0, 0, 0),
+    )
+    draw = ImageDraw.Draw(image)
+    raster_font = ImageFont.truetype(str(font_path), RASTER_SIZE)
+
+    for index, codepoint in enumerate(range(32, 127)):
+        character = chr(codepoint)
+        if character == " ":
+            continue
+        cell_x = (index % BITMAP_COLUMNS) * CELL_WIDTH
+        cell_y = (index // BITMAP_COLUMNS) * CELL_HEIGHT
+        draw.text(
+            (cell_x + 2, cell_y + BASELINE),
+            character,
+            font=raster_font,
+            fill=(255, 255, 255, 255),
+            anchor="ls",
+        )
+    image.save(texture_path, optimize=True)
+
+    characters = [
+        "".join(chr(codepoint) for codepoint in range(start, start + BITMAP_COLUMNS))
+        for start in range(32, 127, BITMAP_COLUMNS)
+    ]
     provider = {
         "providers": [
+            {"type": "space", "advances": {" ": 4}},
             {
-                "type": "ttf",
-                "file": f"carbonclient:font/inter_{font_key}.ttf",
-                "shift": [0.0, 0.0],
-                "size": BASE_SIZE,
-                "oversample": OVERSAMPLE,
+                "type": "bitmap",
+                "file": f"carbonclient:font/inter_{font_key}.png",
+                "ascent": BITMAP_ASCENT,
+                "height": BITMAP_HEIGHT,
+                "chars": characters,
             },
             {"type": "reference", "id": "minecraft:default"},
         ]
     }
-    path = output / f"carbon_inter_{font_key}.json"
-    path.write_text(json.dumps(provider, indent=2) + "\n", encoding="utf-8")
+    (output / f"carbon_inter_{font_key}.json").write_text(
+        json.dumps(provider, indent=2, ensure_ascii=True) + "\n", encoding="utf-8"
+    )
+    print(f"Wrote {texture_path.relative_to(ROOT)}")
 
 
 def build(source: Path, output: Path) -> None:
@@ -75,7 +118,7 @@ def build(source: Path, output: Path) -> None:
         set_font_names(instance, style, weight)
         font_path = output / f"inter_{font_key}.ttf"
         instance.save(font_path)
-        write_provider(font_key, output)
+        write_bitmap_provider(font_key, font_path, output)
         print(f"Wrote {font_path.relative_to(ROOT)}")
 
 

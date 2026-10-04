@@ -22,14 +22,16 @@ public final class CarbonComponents {
     }
 
     public abstract static class Widget extends AbstractButton {
-        private final String label;
+        private String label;
         private float hoverAmount;
         private long lastAnimationNanos;
+        private final long createdAtNanos;
 
         protected Widget(int x, int y, int width, int height, String label) {
             super(x, y, width, height, Component.literal(label));
             this.label = label;
             this.lastAnimationNanos = System.nanoTime();
+            this.createdAtNanos = lastAnimationNanos;
         }
 
         @Override
@@ -39,6 +41,16 @@ public final class CarbonComponents {
 
         protected final String label() {
             return label;
+        }
+
+        protected final void setLabel(String label) {
+            this.label = label;
+            setMessage(Component.literal(label));
+        }
+
+        protected final float animateEntrance(long delayNanos) {
+            long elapsed = System.nanoTime() - createdAtNanos - Math.max(0L, delayNanos);
+            return CarbonAnimation.easeOutBack(elapsed / 240_000_000.0f);
         }
 
         protected final float animateHover() {
@@ -88,6 +100,10 @@ public final class CarbonComponents {
 
         public void setAccent(boolean accent) {
             this.accent = accent;
+        }
+
+        public void updateLabel(String label) {
+            setLabel(label);
         }
 
         @Override
@@ -191,6 +207,9 @@ public final class CarbonComponents {
         private final String categoryLabel;
         private final String iconName;
         private String shortDescription;
+        private long entranceDelayNanos;
+        private long lastModuleStateNanos;
+        private float enabledAmount;
 
         public ModuleCard(int x, int y, int width, int height, Module module, Runnable openOptions) {
             super(x, y, width, height, module.name());
@@ -199,6 +218,12 @@ public final class CarbonComponents {
             this.categoryLabel = module.category().label().toUpperCase(java.util.Locale.ROOT);
             this.iconName = iconFor(module);
             this.shortDescription = module.description();
+            this.enabledAmount = module.enabled() ? 1.0f : 0.0f;
+            this.lastModuleStateNanos = System.nanoTime();
+        }
+
+        public void setEntranceDelayMillis(long delayMillis) {
+            entranceDelayNanos = Math.max(0L, delayMillis) * 1_000_000L;
         }
 
         public Module module() {
@@ -226,12 +251,29 @@ public final class CarbonComponents {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-            boolean enabled = module.enabled();
+            float entrance = animateEntrance(entranceDelayNanos);
+            long now = System.nanoTime();
+            enabledAmount = CarbonAnimation.approach(enabledAmount, module.enabled() ? 1.0f : 0.0f,
+                    now - lastModuleStateNanos, 0.16f);
+            lastModuleStateNanos = now;
             float hover = animateHover();
+
+            graphics.pose().pushMatrix();
+            float scale = 0.97f + 0.03f * CarbonAnimation.easeOutCubic(entrance);
+            graphics.pose().translate(getX() + getWidth() * 0.5f, getY() + getHeight() * 0.5f);
+            graphics.pose().scale(scale, scale);
+            graphics.pose().translate(-getX() - getWidth() * 0.5f,
+                    -getY() - getHeight() * 0.5f + (1.0f - entrance) * design(9));
+
             CarbonGlass.drawPanelGui(graphics, getX(), getY(), getWidth(), getHeight(), 16.0f,
-                    enabled ? CarbonGlass.Style.CARD_ON : CarbonGlass.Style.CARD_OFF);
+                    enabledAmount > 0.5f ? CarbonGlass.Style.CARD_ON : CarbonGlass.Style.CARD_OFF);
+            if (enabledAmount > 0.001f) {
+                int alpha = Math.round(18.0f * enabledAmount);
+                CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
+                        16.0f, (alpha << 24) | 0x003FE18E);
+            }
             if (hover > 0.001f) {
-                int alpha = Math.round(12.0f * hover);
+                int alpha = Math.round(18.0f * hover);
                 CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
                         16.0f, (alpha << 24) | 0x00FFFFFF);
             }
@@ -242,16 +284,17 @@ public final class CarbonComponents {
             int tileX = getX() + margin;
             int tileY = getY() + margin;
             CarbonGlass.drawTintedRect(graphics, tileX, tileY, tileSize, tileSize, design(12),
-                    enabled ? 0x7545D78A : 0x55FFFFFF);
+                    CarbonTheme.mix(0x55FFFFFF, 0x7545D78A, enabledAmount));
 
             int toggleWidth = design(40);
             int toggleHeight = design(22);
             int toggleX = getX() + getWidth() - design(16) - toggleWidth;
             int toggleY = getY() + design(16);
             CarbonGlass.drawTintedRect(graphics, toggleX, toggleY, toggleWidth, toggleHeight,
-                    toggleHeight * 0.5f, enabled ? 0xE522B96A : 0x88465158);
+                    toggleHeight * 0.5f, CarbonTheme.mix(0x88465158, 0xE522B96A, enabledAmount));
             int knobSize = design(14);
-            int knobX = enabled ? toggleX + toggleWidth - design(18) : toggleX + design(4);
+            int knobTravel = design(18);
+            int knobX = toggleX + design(4) + Math.round(knobTravel * enabledAmount);
             int knobY = toggleY + (toggleHeight - knobSize) / 2;
             CarbonGlass.drawTintedRect(graphics, knobX, knobY, knobSize, knobSize,
                     knobSize * 0.5f, 0xFFF4FFF8);
@@ -260,30 +303,38 @@ public final class CarbonComponents {
             int settingsX = getX() + getWidth() - margin - settingsSize;
             int settingsY = getY() + getHeight() - design(16) - settingsSize;
             CarbonGlass.drawTintedRect(graphics, settingsX, settingsY, settingsSize, settingsSize,
-                    design(6), 0x487D9C86);
+                    design(6), 0x597D9C86);
 
             var font = Minecraft.getInstance().font;
             int textX = getX() + design(72);
             int titleY = getY() + design(18);
-            int descriptionY = getY() + design(42);
-            int chipY = getY() + design(66);
+            int descriptionY = getY() + design(44);
+            int chipY = getY() + design(78);
+            int categoryWidth = Math.max(design(58), CarbonText.width(font, categoryLabel) + design(16));
+            int stateWidth = design(58);
             graphics.nextStratum();
             CarbonIcons.drawGui(graphics, iconName,
                     tileX + (tileSize - iconSize) / 2, tileY + (tileSize - iconSize) / 2,
-                    iconSize, enabled ? CarbonTheme.TEXT : 0xB3F1F7F2);
+                    iconSize, CarbonTheme.TEXT);
             CarbonText.drawUi(graphics, font, module.name(), CarbonText.Weight.SEMIBOLD,
                     15.0f, textX, titleY, CarbonTheme.TEXT, false);
             CarbonText.draw(graphics, font, shortDescription, textX, descriptionY,
-                    0x8CF1F7F2, false);
-            int chipWidth = Math.max(design(58), CarbonText.width(font, categoryLabel) + design(16));
-            CarbonGlass.drawTintedRect(graphics, textX, chipY, chipWidth, design(18),
-                    design(9), enabled ? 0x553FE18E : 0x37FFFFFF);
+                    0xB8F1F7F2, false);
+            CarbonGlass.drawTintedRect(graphics, textX, chipY, categoryWidth, design(19),
+                    design(9), 0x3BFFFFFF);
+            CarbonGlass.drawTintedRect(graphics, textX + categoryWidth + design(7), chipY,
+                    stateWidth, design(19), design(9),
+                    enabledAmount > 0.5f ? 0x663FE18E : 0x3BFFFFFF);
             graphics.nextStratum();
             CarbonText.drawUi(graphics, font, categoryLabel, CarbonText.Weight.MEDIUM,
-                    10.0f, textX + design(8), chipY + design(3),
-                    enabled ? CarbonTheme.TEXT : CarbonTheme.TEXT_MUTED, false);
+                    10.0f, textX + design(8), chipY + design(3), CarbonTheme.TEXT_MUTED, false);
+            CarbonText.drawUi(graphics, font, enabledAmount > 0.5f ? "ON" : "OFF",
+                    CarbonText.Weight.SEMIBOLD, 10.0f,
+                    textX + categoryWidth + design(7) + design(8), chipY + design(3),
+                    enabledAmount > 0.5f ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED, false);
             CarbonIcons.drawGui(graphics, "settings", settingsX + (settingsSize - design(16)) / 2,
                     settingsY + (settingsSize - design(16)) / 2, design(16), CarbonTheme.TEXT_MUTED);
+            graphics.pose().popMatrix();
         }
 
         @Override
@@ -331,17 +382,23 @@ public final class CarbonComponents {
     public static final class Toggle extends Widget {
         private final Module module;
         private final BoolSetting setting;
+        private float animatedValue;
+        private long lastValueNanos;
 
         public Toggle(int x, int y, int width, int height, Module module) {
             super(x, y, width, height, module.name());
             this.module = module;
             this.setting = null;
+            this.animatedValue = module.enabled() ? 1.0f : 0.0f;
+            this.lastValueNanos = System.nanoTime();
         }
 
         public Toggle(int x, int y, int width, int height, BoolSetting setting) {
             super(x, y, width, height, setting.label());
             this.module = null;
             this.setting = setting;
+            this.animatedValue = setting.enabled() ? 1.0f : 0.0f;
+            this.lastValueNanos = System.nanoTime();
         }
 
         private boolean value() {
@@ -350,21 +407,34 @@ public final class CarbonComponents {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-            boolean enabled = value();
+            long now = System.nanoTime();
+            animatedValue = CarbonAnimation.approach(animatedValue, value() ? 1.0f : 0.0f,
+                    now - lastValueNanos, 0.14f);
+            lastValueNanos = now;
             drawSurface(graphics, CarbonTheme.PANEL_RAISED, CarbonTheme.PANEL_HOVER);
 
-            int trackX = getX() + getWidth() - 38;
-            int trackY = getY() + (getHeight() - 16) / 2;
-            CarbonGlass.drawTintedRect(graphics, trackX, trackY, 30, 16, 8.0f,
-                    enabled ? CarbonTheme.ACCENT_DEEP : CarbonTheme.TRACK_OFF);
-            int knobX = enabled ? trackX + 16 : trackX + 2;
-            CarbonGlass.drawTintedRect(graphics, knobX, trackY + 2, 12, 12, 6.0f,
-                    enabled ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED);
+            int trackWidth = design(34);
+            int trackHeight = design(18);
+            int trackX = getX() + getWidth() - design(48);
+            int trackY = getY() + (getHeight() - trackHeight) / 2;
+            CarbonGlass.drawTintedRect(graphics, trackX, trackY, trackWidth, trackHeight,
+                    trackHeight * 0.5f, CarbonTheme.mix(CarbonTheme.TRACK_OFF, CarbonTheme.ACCENT_DEEP,
+                            animatedValue));
+            int knobSize = design(14);
+            int knobTravel = Math.max(0, trackWidth - knobSize - design(4));
+            int knobX = trackX + design(2) + Math.round(knobTravel * animatedValue);
+            CarbonGlass.drawTintedRect(graphics, knobX, trackY + (trackHeight - knobSize) / 2,
+                    knobSize, knobSize, knobSize * 0.5f,
+                    CarbonTheme.mix(CarbonTheme.TEXT_MUTED, CarbonTheme.TEXT, animatedValue));
 
             beginTextLayer(graphics);
-            if (getWidth() > 72) {
-                drawLabel(graphics, label(), CarbonTheme.TEXT, 10);
+            if (getWidth() > design(72)) {
+                drawLabel(graphics, label(), CarbonTheme.TEXT, design(10));
             }
+        }
+
+        private int design(int pixels) {
+            return Math.max(1, Math.round(pixels * UiScale.rendererScale()));
         }
 
         @Override
