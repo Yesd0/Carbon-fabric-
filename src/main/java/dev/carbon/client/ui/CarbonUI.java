@@ -1,23 +1,26 @@
 package dev.carbon.client.ui;
 
-import dev.carbon.client.core.config.ConfigManager;
+import com.mojang.blaze3d.platform.InputConstants;
+import dev.carbon.client.core.event.ClientTickEvent;
 import dev.carbon.client.core.event.EventBus;
-import dev.carbon.client.core.event.KeyInputEvent;
-import dev.carbon.client.core.event.MouseInputEvent;
+import dev.carbon.client.core.config.ConfigManager;
 import dev.carbon.client.core.module.ModuleManager;
-import dev.carbon.client.ui.render.CarbonGlass;
-import dev.carbon.client.ui.render.CarbonRenderPipelines;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Registers Carbon's rendering hooks, module menu, and glass-test keybind. */
+/** Registers Carbon's menu in vanilla Controls and handles its key mapping on client ticks. */
 public final class CarbonUI {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
+    private static final Identifier CATEGORY_ID = Identifier.fromNamespaceAndPath("carbonclient", "controls");
 
     private static ModuleManager moduleManager;
     private static ConfigManager configManager;
+    private static KeyMapping openMenuKey;
     private static boolean initialized;
 
     private CarbonUI() {
@@ -30,41 +33,31 @@ public final class CarbonUI {
 
         moduleManager = modules;
         configManager = config;
-        try {
-            CarbonRenderPipelines.register();
-        } catch (Throwable failure) {
-            CarbonGlass.reportFailure("SDF glass pipeline registration failed", failure);
-            LOGGER.error("Carbon SDF pipeline registration failed; no flat fallback will be used", failure);
-        }
-
-        eventBus.subscribe(KeyInputEvent.class, CarbonUI::onKeyInput);
-        eventBus.subscribe(MouseInputEvent.class, CarbonUI::onMouseInput);
+        KeyMapping.Category category = KeyMapping.Category.register(CATEGORY_ID);
+        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping(
+                "key.carbonclient.open_menu",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_RIGHT_SHIFT,
+                category));
+        eventBus.subscribe(ClientTickEvent.class, CarbonUI::onClientTick);
         initialized = true;
+        LOGGER.info("Registered Carbon menu key in Minecraft Controls (default: Right Shift)");
     }
 
-    private static void onKeyInput(KeyInputEvent event) {
-        if (moduleManager == null) {
-            return;
-        }
-
-        Minecraft client = Minecraft.getInstance();
-        if (client.gui.screen() instanceof CarbonDemoScreen demoScreen && demoScreen.captureKey(event)) {
-            return;
-        }
-        if (event.action() != GLFW.GLFW_PRESS || client.gui.screen() != null) {
-            return;
-        }
-        if (event.keyCode() == GLFW.GLFW_KEY_RIGHT_SHIFT) {
-            client.gui.setScreen(new CarbonDemoScreen(moduleManager, configManager, null));
-        } else if (event.keyCode() == GLFW.GLFW_KEY_F8) {
-            client.gui.setScreen(new CarbonGlassTestScreen(null));
-        }
+    /** Localized display label used by the in-menu controls page. */
+    public static String menuKeyLabel() {
+        return openMenuKey == null ? "Right Shift" : openMenuKey.getTranslatedKeyMessage().getString();
     }
 
-    private static void onMouseInput(MouseInputEvent event) {
+    private static void onClientTick(ClientTickEvent event) {
+        if (event.phase() != ClientTickEvent.Phase.END || openMenuKey == null || moduleManager == null) {
+            return;
+        }
         Minecraft client = Minecraft.getInstance();
-        if (client.gui.screen() instanceof CarbonDemoScreen demoScreen) {
-            demoScreen.captureMouse(event);
+        while (openMenuKey.consumeClick()) {
+            if (client.gui.screen() == null) {
+                client.gui.setScreen(new CarbonMenuScreen(moduleManager, configManager, null));
+            }
         }
     }
 }

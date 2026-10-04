@@ -96,14 +96,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="v1.0.0-test.7"
+          tag="v1.0.0-test.8"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Refusing to overwrite existing release $tag" >&2
             exit 1
           fi
           gh release create "$tag" build/libs/carbonclient-1.0.0.jar \
-            --title "Carbon Client 1.0.0 Complete Menu Rebuild" \
-            --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. Right Shift opens Carbon's single module menu; F8 opens the separate glass-rendering test screen; F7 toggles layout debug. This rebuild replaces the menu's drawing and hit-testing path with one sidebar-based interface backed by Carbon's live module registry and config. It includes working category/search filters, module enable controls, typed per-module settings, presets, saved profiles, the local username and 3D skin-head portrait (with a visible face fallback), plus a persistent UI scale control. The deliberate solid charcoal theme is the first-run default; the same menu's settings switch to the optional glass finish. The animated test pattern remains F8-only. The JAR is CI-built; in-game verification is still needed. This release is immutable: the workflow refuses to replace an existing test.7 release." \
+            --title "Carbon Client 1.0.0 Opaque Menu Rebuild" \
+            --notes "Minecraft 26.2 PC test build, compiled with Java 25. Requires Fabric Loader 0.19.5 or newer and Fabric API 0.161.0+26.2 or newer. The Carbon menu key is registered in Options → Controls → Key Binds → Carbon Client and defaults to Right Shift. This rebuild replaces the old menu and glass-test path with a compact, opaque grayscale interface: clickable module cards toggle the live registry entries, each card's gear opens real typed settings, search/categories work on the registered modules, and Essentials/PvP/Creator presets update the retained FPS, CPS, Keystrokes, and Zoom starters. It includes saved profiles, the username and 3D skin-head portrait, persistent UI scale, and the bundled Carbon Display face with a Minecraft-font fallback. The F8 glass test, F7 debug overlay, blur helpers, and glass shader have been removed. The JAR is CI-built; in-game verification is still needed. This release is immutable: the workflow refuses to replace an existing test.8 release." \
             --prerelease --target "$GITHUB_REF_NAME"
 
       - name: Upload mod JAR

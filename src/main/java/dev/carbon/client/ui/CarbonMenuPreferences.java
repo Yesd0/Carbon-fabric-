@@ -15,7 +15,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 
-/** Small, global menu-only settings that are independent from the active module profile. */
+/** Persistent menu-only appearance preferences, independent from module profiles. */
 public final class CarbonMenuPreferences {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -23,8 +23,7 @@ public final class CarbonMenuPreferences {
     private static final float MAX_SCALE = 1.50f;
 
     private final Path file;
-    // Start with the dependable, fully solid theme; glass remains a deliberate in-menu choice.
-    private boolean glassUi;
+    private boolean customFont = true;
     private float uiScale = 1.0f;
 
     private CarbonMenuPreferences(Path file) {
@@ -38,8 +37,8 @@ public final class CarbonMenuPreferences {
         }
         try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            if (root.has("glassUi") && root.get("glassUi").isJsonPrimitive()) {
-                preferences.glassUi = root.get("glassUi").getAsBoolean();
+            if (root.has("customFont") && root.get("customFont").isJsonPrimitive()) {
+                preferences.customFont = root.get("customFont").getAsBoolean();
             }
             if (root.has("uiScale") && root.get("uiScale").isJsonPrimitive()) {
                 preferences.uiScale = clamp(root.get("uiScale").getAsFloat());
@@ -50,16 +49,16 @@ public final class CarbonMenuPreferences {
         return preferences;
     }
 
-    public boolean glassUi() {
-        return glassUi;
+    public boolean customFont() {
+        return customFont;
     }
 
     public float uiScale() {
         return uiScale;
     }
 
-    public void setGlassUi(boolean glassUi) {
-        this.glassUi = glassUi;
+    public void setCustomFont(boolean customFont) {
+        this.customFont = customFont;
         save();
     }
 
@@ -75,8 +74,8 @@ public final class CarbonMenuPreferences {
 
     private void save() {
         JsonObject root = new JsonObject();
-        root.addProperty("schemaVersion", 1);
-        root.addProperty("glassUi", glassUi);
+        root.addProperty("schemaVersion", 2);
+        root.addProperty("customFont", customFont);
         root.addProperty("uiScale", uiScale);
         Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
         try {

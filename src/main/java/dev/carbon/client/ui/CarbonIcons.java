@@ -3,11 +3,12 @@ package dev.carbon.client.ui;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import dev.carbon.client.ui.render.CarbonGlass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,8 +16,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** Loads and draws Carbon's bundled Lucide atlas through Minecraft's tinted textured shader. */
+/** Loads and draws Carbon's bundled Lucide atlas using Minecraft's GUI texture pipeline. */
 public final class CarbonIcons {
+    private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
     private static final Identifier ATLAS = Identifier.fromNamespaceAndPath(
             "carbonclient", "textures/gui/icons.png");
     private static final Identifier INDEX = Identifier.fromNamespaceAndPath(
@@ -55,20 +57,20 @@ public final class CarbonIcons {
             }
             for (String required : REQUIRED) {
                 if (!ICONS.containsKey(required)) {
-                    CarbonGlass.reportFailure("Lucide atlas index is missing icon " + required, null);
+                    LOGGER.error("Carbon icon atlas index is missing icon '{}'; text labels remain available", required);
                     return;
                 }
             }
             loaded = atlasWidth > 0 && atlasHeight > 0;
             if (!loaded) {
-                CarbonGlass.reportFailure("Lucide atlas index has invalid dimensions", null);
+                LOGGER.error("Carbon icon atlas index has invalid dimensions; text labels remain available");
             }
         } catch (IOException | RuntimeException failure) {
-            CarbonGlass.reportFailure("Lucide icon atlas could not be loaded", failure);
+            LOGGER.error("Carbon icon atlas could not be loaded; text labels remain available", failure);
         }
     }
 
-    /** Draws a 96x96 atlas entry at a snapped design-pixel position and size. */
+    /** Draws an atlas entry at a pixel-snapped design-pixel position and size. */
     public static void drawDesign(GuiGraphicsExtractor graphics, String name, float x, float y,
                                   float size, int tint) {
         load();
@@ -77,7 +79,7 @@ public final class CarbonIcons {
         }
         IconRect icon = ICONS.get(name);
         if (icon == null) {
-            CarbonGlass.reportFailure("Lucide atlas does not contain icon " + name, null);
+            LOGGER.warn("Carbon icon atlas does not contain icon '{}'; text fallback will be used", name);
             return;
         }
         float snappedX = UiScale.snap(x);
@@ -94,7 +96,7 @@ public final class CarbonIcons {
         graphics.pose().popMatrix();
     }
 
-    /** Draws an icon in legacy Minecraft GUI coordinates for Carbon's existing controls. */
+    /** Draws an icon in ordinary Minecraft GUI coordinates. */
     public static void drawGui(GuiGraphicsExtractor graphics, String name, int x, int y,
                                int size, int tint) {
         load();
@@ -103,7 +105,7 @@ public final class CarbonIcons {
         }
         IconRect icon = ICONS.get(name);
         if (icon == null) {
-            CarbonGlass.reportFailure("Lucide atlas does not contain icon " + name, null);
+            LOGGER.warn("Carbon icon atlas does not contain icon '{}'; text fallback will be used", name);
             return;
         }
         int targetSize = Math.max(1, size);

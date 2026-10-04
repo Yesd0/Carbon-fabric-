@@ -11,12 +11,14 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Cached Inter components and design-pixel text placement for Carbon screens. */
+/** Cached Carbon Display components and design-pixel text placement for Carbon screens. */
 public final class CarbonText {
     public static final float FONT_BASE_SIZE = 16.0f;
     private static final float LEGACY_TEXT_SIZE = 12.0f;
     private static final int CACHE_LIMIT = 768;
+    private static final Identifier DISPLAY_FONT = Identifier.fromNamespaceAndPath("carbonclient", "carbon_display");
     private static final Map<Weight, Map<String, Component>> COMPONENTS = new EnumMap<>(Weight.class);
+    private static boolean customFontEnabled = true;
 
     static {
         for (Weight weight : Weight.values()) {
@@ -37,12 +39,14 @@ public final class CarbonText {
         if (cached != null) {
             return cached;
         }
-        // Keep interactive UI labels on Minecraft's known-good glyph provider. The bundled
-        // Inter bitmaps remain available, but are opt-in after this client's renderer is verified.
         Style style = switch (weight) {
             case SEMIBOLD, BOLD -> Style.EMPTY.withBold(true);
             case REGULAR, MEDIUM -> Style.EMPTY;
         };
+        if (customFontEnabled) {
+            // The bundled TTF provider includes a vanilla glyph reference as a missing-glyph fallback.
+            style = style.withFont(new FontDescription.Resource(DISPLAY_FONT));
+        }
         Component created = Component.literal(text).withStyle(style);
         if (cache.size() >= CACHE_LIMIT) {
             cache.clear();
@@ -51,7 +55,16 @@ public final class CarbonText {
         return created;
     }
 
-    /** Optional bundled Inter component for screens that have verified custom-font rendering. */
+    /** Applies the bundled Carbon Display face or Minecraft's dependable default glyph provider. */
+    public static void setCustomFontEnabled(boolean enabled) {
+        if (customFontEnabled == enabled) {
+            return;
+        }
+        customFontEnabled = enabled;
+        COMPONENTS.values().forEach(Map::clear);
+    }
+
+    /** Optional legacy Inter bitmap component, retained for compatibility with existing assets. */
     public static Component bundledFontComponent(String text, Weight weight) {
         return Component.literal(text).withStyle(
                 Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId)));
@@ -64,7 +77,7 @@ public final class CarbonText {
                 x, y, color, shadow);
     }
 
-    /** Draws a custom Carbon font at a reference design size in normal Minecraft GUI coordinates. */
+    /** Draws a Carbon font at a reference design size in normal Minecraft GUI coordinates. */
     public static void drawUi(GuiGraphicsExtractor graphics, Font font, String text,
                               Weight weight, float designSize, float x, float y,
                               int color, boolean shadow) {
@@ -103,6 +116,20 @@ public final class CarbonText {
         float physicalSize = Math.max(1.0f, Math.round(size * uiScale));
         float scale = physicalSize / (FONT_BASE_SIZE * uiScale);
         return font.width(component(text, weight)) * scale;
+    }
+
+    /** Draws text centered at a GUI-coordinate position using a reference design-pixel size. */
+    public static void centeredUi(GuiGraphicsExtractor graphics, Font font, String text,
+                                  Weight weight, float designSize, float centerX, float y,
+                                  int color, boolean shadow) {
+        float textWidth = widthUi(font, text, weight, designSize);
+        drawUi(graphics, font, text, weight, designSize, centerX - textWidth * 0.5f, y, color, shadow);
+    }
+
+    /** Measures text in Minecraft GUI coordinates at a reference design-pixel size. */
+    public static float widthUi(Font font, String text, Weight weight, float designSize) {
+        UiScale.update(net.minecraft.client.Minecraft.getInstance());
+        return font.width(component(text, weight)) * guiTextScale(designSize);
     }
 
     /** Width matching the 12px compatibility draw size used by the existing Carbon controls. */

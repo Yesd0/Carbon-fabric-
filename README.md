@@ -1,6 +1,6 @@
 # Carbon Client
 
-Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. It ships a single Carbon-branded module menu, a small registry of client modules, persistent settings and profiles, and a separate glass-rendering test screen. Lunar Client is a high-level interaction reference only; this project does not copy its branding or assets.
+Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. It provides a compact Carbon-branded module menu and a small registry of client-side HUD and visual modules. Lunar Client is a high-level interaction reference only; Carbon does not use Lunar branding or assets.
 
 ## Toolchain
 
@@ -23,26 +23,24 @@ With a Java 25 JDK installed, run:
 
 The distributable is `build/libs/carbonclient-1.0.0.jar`. Install it in a Minecraft 26.2 PC profile with Fabric Loader and Fabric API.
 
-- **Right Shift** opens the Carbon module menu.
-- **F8** opens the separate glass-rendering test screen; its animated color pattern is intentionally kept there.
-- **F7** toggles the layout-debug overlay while a Carbon screen is open.
+The Carbon menu key is registered in Minecraft's normal **Options → Controls → Key Binds → Carbon Client** category. It defaults to **Right Shift** and can be changed there. The menu does not use a hard-coded keyboard hook for opening.
 
-## Module menu
+## Menu
 
-The menu is a single interface with a Carbon sidebar, a local username and 3D skin-head portrait, module categories, search, quick presets, profiles, and a searchable module-card area. Card clicks toggle the real registered module; the settings control opens the selected module's typed settings. Boolean, numeric, mode, color, and keybind settings write through the existing config listeners.
+The menu uses an opaque, solid black-and-white palette with rounded panels, compact module cards, subtle hover/enable/entry animations, and no glass, blur, or translucent surfaces. It includes:
 
-First launch uses the solid charcoal theme so the controls remain legible and available independently of the glass renderer. From the same menu, **Settings → Menu** switches that interface to the optional glass finish and adjusts the persistent Carbon UI scale. Glass-render failures continue to be logged; the menu switches back to its usable solid theme if its glass pipeline is unavailable. Menu-only animated pattern/particle backgrounds are not drawn; the F8 test screen is unchanged.
+- The current Minecraft username and a 3D head rendered from the local player's skin.
+- Live module categories and search across module names, descriptions, and IDs.
+- Module cards that toggle the real module when clicked; enabled state is informational, not a separate ON/OFF control.
+- A settings gear on every module card that opens that module's actual typed settings.
+- Working Essentials, PvP, and Creator presets that update the registered starter modules.
+- Persistent UI scale and a bundled Carbon Display font, with a one-click Minecraft-font fallback if the custom face is not legible on a particular client.
+- Saved configuration profiles backed by Carbon's existing config manager.
 
-Profiles and module configuration stay local to `.minecraft/config/carbonclient/`. The global menu appearance and scale preference is stored alongside them in `menu.json`. The mod makes no network calls.
+The retained starter modules are FPS, CPS, Keystrokes, and Zoom. Module values, keybinds, enabled state, and profiles are stored locally under `.minecraft/config/carbonclient/`. Menu scale and font preference are stored in `menu.json`; Minecraft stores the menu-opening key with its normal options. The mod makes no network calls.
 
-## Rendering and bundled assets
+## Bundled assets and validation
 
-- `UiScale` maps Carbon UI sizing to Minecraft GUI coordinates and snaps to physical pixels. Its user multiplier is shared by Carbon's UI/HUD layout.
-- Bundled Inter font resources remain in the project. Interactive labels use Minecraft's standard glyph provider because custom glyph rendering previously produced boxes on the target client.
-- The Lucide SVG sources, ISC license, atlas-builder script, 96×96 glyph atlas, and JSON index remain bundled.
-- Carbon's SDF renderer provides rounded glass, grain, highlight, border, shadow, and active-card treatment. Renderer failures are logged; there is no fallback that silently pretends the glass shader succeeded. The module menu's explicit solid theme is a separate, user-selectable styling mode.
-- The F8 test screen uses Minecraft's native whole-backdrop GUI blur and retains its animated color field. Per-panel framebuffer sampling and custom Kawase/Gaussian blur are not implemented; the test screen shows the active blur path.
+Bundled Inter/Carbon font resources, their licenses, and the Lucide icon atlas remain in the project. Carbon's glass shader, blur helpers, F8 test screen, and F7 layout-debug path have been removed. The UI draws its rounded surfaces with ordinary opaque GUI fills; there is no shader or glass fallback path.
 
-## Rebuild and validation status
-
-The `.5` JAR was reported in-game as visually unchanged and nonfunctional. This rebuild replaces the module menu's rendering and input/hit-testing path rather than applying another font or opacity tweak. GitHub Actions builds the next immutable test release with Java 25. The sandbox has no Minecraft runtime, so neither CI success nor source presence is claimed as in-game verification; please verify the menu, skin portrait, controls, settings, saved profiles, theme switching, and UI scale in Minecraft.
+The GitHub Actions workflow builds the next immutable test release as `v1.0.0-test.8` with Java 25. CI verifies compilation and packaging, not in-game behavior. The sandbox has no Minecraft runtime, so the menu, keybind screen, skin portrait, settings, profiles, and scale still need hands-on verification in Minecraft.
