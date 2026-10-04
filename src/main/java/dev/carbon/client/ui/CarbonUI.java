@@ -5,7 +5,7 @@ import dev.carbon.client.core.event.ClientTickEvent;
 import dev.carbon.client.core.event.EventBus;
 import dev.carbon.client.core.config.ConfigManager;
 import dev.carbon.client.core.module.ModuleManager;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
@@ -34,7 +34,7 @@ public final class CarbonUI {
         moduleManager = modules;
         configManager = config;
         KeyMapping.Category category = KeyMapping.Category.register(CATEGORY_ID);
-        openMenuKey = KeyBindingHelper.registerKeyMapping(new KeyMapping(
+        openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.carbonclient.open_menu",
                 InputConstants.Type.KEYSYM,
                 GLFW.GLFW_KEY_RIGHT_SHIFT,
