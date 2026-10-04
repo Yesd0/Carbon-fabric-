@@ -48,12 +48,12 @@ public final class CarbonDemoScreen extends CarbonScreen {
             0xFF54E49A, 0xFF70B7FF, 0xFFFFBD67, 0xFFCA91FF, 0xFFFF7B8C
     };
     private static final List<Preset> PRESETS = List.of(
-            new Preset("Minimal", Map.of("fps_hud", true, "cps_hud", false,
-                    "keystrokes_hud", false, "zoom", false)),
-            new Preset("Creator", Map.of("fps_hud", true, "cps_hud", true,
-                    "keystrokes_hud", true, "zoom", false)),
-            new Preset("PvP", Map.of("fps_hud", true, "cps_hud", true,
-                    "keystrokes_hud", true, "zoom", true))
+            new Preset("Minimal", Map.of("fps", true, "cps", false,
+                    "keystrokes", false, "zoom", false)),
+            new Preset("Creator", Map.of("fps", true, "cps", true,
+                    "keystrokes", true, "zoom", false)),
+            new Preset("PvP", Map.of("fps", true, "cps", true,
+                    "keystrokes", true, "zoom", true))
     );
 
     private final ModuleManager modules;
@@ -1156,9 +1156,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
     private String moduleIcon(Module module) {
         return switch (module.id()) {
-            case "fps_hud" -> "gauge";
-            case "cps_hud" -> "mouse-pointer-click";
-            case "keystrokes_hud" -> "keyboard";
+            case "fps" -> "gauge";
+            case "cps" -> "mouse-pointer-click";
+            case "keystrokes" -> "keyboard";
             case "zoom" -> "zoom-in";
             default -> "layout-dashboard";
         };
