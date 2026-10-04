@@ -2,7 +2,7 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "inter_semibold.ttf",
+      "file": "carbonclient:font/inter_semibold.ttf",
       "shift": [
         0.0,
         0.0

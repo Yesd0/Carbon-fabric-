@@ -4,6 +4,10 @@ build/
 run/
 artifacts/
 
+# Python tooling
+__pycache__/
+*.py[cod]
+
 # IDE
 .idea/
 *.iml

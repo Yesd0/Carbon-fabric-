@@ -12,7 +12,7 @@ import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** Registers Carbon's rendering hooks and the Part A visual-test keybind. */
+/** Registers Carbon's rendering hooks, module menu, and glass-test keybind. */
 public final class CarbonUI {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
 
@@ -51,7 +51,12 @@ public final class CarbonUI {
         if (client.gui.screen() instanceof CarbonDemoScreen demoScreen && demoScreen.captureKey(event)) {
             return;
         }
-        if (event.keyCode() == GLFW.GLFW_KEY_F8 && event.action() == GLFW.GLFW_PRESS && client.gui.screen() == null) {
+        if (event.action() != GLFW.GLFW_PRESS || client.gui.screen() != null) {
+            return;
+        }
+        if (event.keyCode() == GLFW.GLFW_KEY_RIGHT_SHIFT) {
+            client.gui.setScreen(new CarbonDemoScreen(moduleManager, configManager, null));
+        } else if (event.keyCode() == GLFW.GLFW_KEY_F8) {
             client.gui.setScreen(new CarbonGlassTestScreen(null));
         }
     }

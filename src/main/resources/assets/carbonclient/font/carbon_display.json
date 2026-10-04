@@ -2,8 +2,11 @@
   "providers": [
     {
       "type": "ttf",
-      "file": "carbon_display.ttf",
-      "shift": [0.0, 0.0],
+      "file": "carbonclient:font/carbon_display.ttf",
+      "shift": [
+        0.0,
+        0.0
+      ],
       "size": 11.0,
       "oversample": 2.0
     },

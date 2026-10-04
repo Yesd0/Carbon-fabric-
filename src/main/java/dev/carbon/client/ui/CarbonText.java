@@ -49,19 +49,29 @@ public final class CarbonText {
     /** Compatibility entry point used by the existing Carbon controls in GUI coordinates. */
     public static void draw(GuiGraphicsExtractor graphics, Font font, String text,
                             int x, int y, int color, boolean shadow) {
-        drawAtScale(graphics, font, text, Weight.REGULAR,
-                LEGACY_TEXT_SIZE / FONT_BASE_SIZE, x, y, color, shadow);
+        drawUi(graphics, font, text, Weight.REGULAR, LEGACY_TEXT_SIZE,
+                x, y, color, shadow);
+    }
+
+    /** Draws a custom Carbon font at a reference design size in normal Minecraft GUI coordinates. */
+    public static void drawUi(GuiGraphicsExtractor graphics, Font font, String text,
+                              Weight weight, float designSize, float x, float y,
+                              int color, boolean shadow) {
+        UiScale.update(net.minecraft.client.Minecraft.getInstance());
+        drawAtScale(graphics, font, text, weight, guiTextScale(designSize),
+                UiScale.snapGui(x), UiScale.snapGui(y), color, shadow);
     }
 
     public static void centered(GuiGraphicsExtractor graphics, Font font, String text,
                                 int centerX, int y, int color, boolean shadow) {
-        float textWidth = font.width(component(text)) * (LEGACY_TEXT_SIZE / FONT_BASE_SIZE);
+        float textWidth = font.width(component(text)) * guiTextScale(LEGACY_TEXT_SIZE);
         draw(graphics, font, text, Math.round(centerX - textWidth * 0.5f), y, color, shadow);
     }
 
     /** Draws text at a design-pixel size, with its origin and physical font size pixel-snapped. */
     public static void drawDesign(GuiGraphicsExtractor graphics, Font font, String text,
                                   Weight weight, float size, float x, float y, int color, boolean shadow) {
+        UiScale.update(net.minecraft.client.Minecraft.getInstance());
         float uiScale = UiScale.uiScale();
         float physicalSize = Math.max(1.0f, Math.round(size * uiScale));
         float scale = physicalSize / (FONT_BASE_SIZE * uiScale);
@@ -77,6 +87,7 @@ public final class CarbonText {
     }
 
     public static float widthDesign(Font font, String text, Weight weight, float size) {
+        UiScale.update(net.minecraft.client.Minecraft.getInstance());
         float uiScale = UiScale.uiScale();
         float physicalSize = Math.max(1.0f, Math.round(size * uiScale));
         float scale = physicalSize / (FONT_BASE_SIZE * uiScale);
@@ -85,7 +96,13 @@ public final class CarbonText {
 
     /** Width matching the 12px compatibility draw size used by the existing Carbon controls. */
     public static int width(Font font, String text) {
-        return Math.round(font.width(component(text)) * (LEGACY_TEXT_SIZE / FONT_BASE_SIZE));
+        return Math.round(font.width(component(text)) * guiTextScale(LEGACY_TEXT_SIZE));
+    }
+
+    private static float guiTextScale(float designSize) {
+        UiScale.update(net.minecraft.client.Minecraft.getInstance());
+        float physicalSize = Math.max(1.0f, Math.round(designSize * UiScale.uiScale()));
+        return physicalSize / (FONT_BASE_SIZE * UiScale.guiScale());
     }
 
     private static void drawAtScale(GuiGraphicsExtractor graphics, Font font, String text,

@@ -28,13 +28,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-/** Translucent, compact Carbon launcher-style popup for modules, profiles, and settings. */
+/** Carbon's translucent PC module menu with sidebar navigation and live module cards. */
 public final class CarbonDemoScreen extends CarbonScreen {
     private static final Identifier CARBON_MARK = Identifier.fromNamespaceAndPath(
             "carbonclient", "textures/gui/carbon_mark.png");
-    private static final int HEADER_HEIGHT = 56;
-    private static final int CARD_GAP = 11;
-    private static final int FILTER_GAP = 6;
 
     private final ModuleManager modules;
     private final ConfigManager configManager;
@@ -43,9 +40,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
     private final ArrayList<CarbonComponents.ModuleCard> moduleCards = new ArrayList<>();
     private final ArrayList<AbstractWidget> settingControls = new ArrayList<>();
 
-    private CarbonComponents.Button modulesTab;
-    private CarbonComponents.Button settingsTab;
-    private CarbonComponents.Button closeButton;
+    private CarbonComponents.NavButton modulesTab;
+    private CarbonComponents.NavButton settingsTab;
+    private CarbonComponents.IconButton closeButton;
     private CarbonComponents.Button saveProfileButton;
     private EditBox searchBox;
 
@@ -56,6 +53,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
     private boolean suppressCapturedKey;
     private boolean suppressCapturedMouse;
     private String searchText = "";
+    private String screenTitle = "All Modules";
 
     private int panelX;
     private int panelY;
@@ -75,7 +73,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
     private int gridScrollRow;
     private int cardHeight;
     private int visibleModuleCount;
-    private boolean stackedToolbar;
+    private float layoutScale = 1.0f;
 
     public CarbonDemoScreen(ModuleManager modules, ConfigManager configManager, Screen parent) {
         super(Component.literal("Carbon Client"), parent);
@@ -85,6 +83,9 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
     @Override
     protected void init() {
+        UiScale.update(Minecraft.getInstance());
+        layoutScale = UiScale.rendererScale();
+        CarbonIcons.load();
         filterEntries.clear();
         profileEntries.clear();
         moduleCards.clear();
@@ -93,6 +94,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
         if (selectedModule == null) {
             selectedModule = firstModule();
         }
+        updateScreenTitle();
 
         addHeaderControls();
         addFilterControls();
@@ -105,49 +107,62 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-        // A low-opacity scrim keeps the world visible through the native menu blur.
-        CarbonGlass.drawTintedRect(graphics, 0, 0, width, height, 0.0f, CarbonTheme.SCRIM);
-        CarbonGlass.drawTintedRect(graphics, panelX + 1, panelY + 5, panelWidth, panelHeight,
-                18.0f, 0x4A000000);
-        CarbonGlass.outlineTintedRect(graphics, panelX, panelY, panelWidth, panelHeight,
-                18.0f, CarbonTheme.BORDER, CarbonTheme.FRAME);
-        CarbonGlass.drawTintedRect(graphics, panelX + 1, panelY + 1, panelWidth - 2,
-                HEADER_HEIGHT, 17.0f, 0xAA111915);
-        CarbonGlass.drawTintedRect(graphics, panelX + 12, sidebarY, sidebarWidth - 22,
-                sidebarHeight, 13.0f, CarbonTheme.PANEL);
-        CarbonGlass.drawTintedRect(graphics, panelX + sidebarWidth, panelY + HEADER_HEIGHT,
-                1, panelHeight - HEADER_HEIGHT - 1, 0.5f, CarbonTheme.BORDER_SOFT);
+        UiScale.update(Minecraft.getInstance());
+        layoutScale = UiScale.rendererScale();
 
+        // The module menu intentionally has no animated test-pattern layer.
+        graphics.nextStratum();
+        CarbonGlass.drawTintedRect(graphics, 0, 0, width, height, 0.0f, 0x26050A08);
+        UiScale.pushRendererScale(graphics);
+        CarbonGlass.drawPanel(graphics,
+                panelX / layoutScale, panelY / layoutScale,
+                panelWidth / layoutScale, panelHeight / layoutScale,
+                20.0f, CarbonGlass.Style.MAIN);
+        CarbonGlass.drawTintedRectDesign(graphics,
+                panelX / layoutScale, panelY / layoutScale,
+                sidebarWidth / layoutScale, panelHeight / layoutScale,
+                20.0f, 0x54141D18);
+        CarbonGlass.drawTintedRectDesign(graphics,
+                (panelX + sidebarWidth) / layoutScale, panelY / layoutScale,
+                1.0f, panelHeight / layoutScale, 0.5f, 0x287D9C86);
+        UiScale.popRendererScale(graphics);
+
+        graphics.nextStratum();
         if (activeView == View.MODULES) {
             drawModulesSurface(graphics);
         } else {
             drawSettingsSurface(graphics);
         }
+        super.extractRenderState(graphics, mouseX, mouseY, delta);
 
         graphics.nextStratum();
         var font = Minecraft.getInstance().font;
-        graphics.blit(CARBON_MARK, panelX + 17, panelY + 11, panelX + 50, panelY + 44,
+        int markSize = design(28);
+        int markX = panelX + design(24);
+        int markY = panelY + design(22);
+        graphics.blit(CARBON_MARK, markX, markY, markX + markSize, markY + markSize,
                 0.0f, 1.0f, 0.0f, 1.0f);
-        CarbonText.draw(graphics, font, "CARBON CLIENT", panelX + 59, panelY + 15,
-                CarbonTheme.TEXT, false);
-        CarbonText.draw(graphics, font, "CLIENT CONTROL CENTER", panelX + 60, panelY + 32,
+        CarbonText.drawUi(graphics, font, "CARBON", CarbonText.Weight.BOLD,
+                15.0f, markX + markSize + design(10), panelY + design(28), CarbonTheme.TEXT, false);
+        CarbonGlass.drawTintedRect(graphics, panelX + design(132), panelY + design(29),
+                design(6), design(6), design(3), CarbonTheme.ACCENT);
+
+        CarbonText.drawUi(graphics, font, screenTitle, CarbonText.Weight.SEMIBOLD,
+                22.0f, contentX + design(24), panelY + design(27), CarbonTheme.TEXT, false);
+        if (activeView == View.MODULES) {
+            CarbonText.drawUi(graphics, font, "PROFILES", CarbonText.Weight.MEDIUM,
+                    11.0f, panelX + design(24), panelY + design(202), CarbonTheme.TEXT_DIM, false);
+        }
+        CarbonText.drawUi(graphics, font, "v1.0.0", CarbonText.Weight.REGULAR,
+                11.0f, panelX + design(24), panelY + panelHeight - design(28),
                 CarbonTheme.TEXT_DIM, false);
 
-        if (activeView == View.MODULES) {
-            CarbonText.draw(graphics, font, "PROFILES", sidebarX + 12, sidebarY + 12,
-                    CarbonTheme.TEXT_DIM, false);
-        } else {
-            CarbonText.draw(graphics, font, "MODULE SETTINGS", contentX + 20,
-                    panelY + HEADER_HEIGHT + 20, CarbonTheme.TEXT_DIM, false);
-            if (selectedModule != null) {
-                CarbonText.draw(graphics, font, selectedModule.name(), contentX + 20,
-                        panelY + HEADER_HEIGHT + 43, CarbonTheme.TEXT, false);
-                CarbonText.draw(graphics, font, selectedModule.description(), contentX + 20,
-                        panelY + HEADER_HEIGHT + 62, CarbonTheme.TEXT_MUTED, false);
-            }
+        if (searchBox != null && activeView == View.MODULES) {
+            int iconSize = design(16);
+            int iconX = panelX + panelWidth - design(260);
+            int iconY = panelY + design(30);
+            CarbonIcons.drawGui(graphics, "search", iconX, iconY, iconSize, CarbonTheme.TEXT_MUTED);
         }
-
-        super.extractRenderState(graphics, mouseX, mouseY, delta);
         CarbonGlass.drawFailureLabelGui(graphics);
     }
 
@@ -155,7 +170,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
         if (activeView != View.MODULES || gridRows <= visibleGridRows || verticalAmount == 0.0
                 || mouseX < contentX || mouseX > contentX + contentWidth
-                || mouseY < cardsTop || mouseY > panelY + panelHeight - 10) {
+                || mouseY < cardsTop || mouseY > panelY + panelHeight - design(20)) {
             return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
         }
         int maximum = Math.max(0, gridRows - visibleGridRows);
@@ -225,32 +240,39 @@ public final class CarbonDemoScreen extends CarbonScreen {
     }
 
     private void calculateLayout() {
-        int availableWidth = Math.max(1, width - 16);
-        int availableHeight = Math.max(1, height - 16);
-        panelWidth = Math.max(1, Math.min(1080, Math.min(availableWidth, Math.round(width * 0.94f))));
-        panelHeight = Math.max(1, Math.min(660, Math.min(availableHeight, Math.round(height * 0.84f))));
+        UiScale.update(Minecraft.getInstance());
+        layoutScale = UiScale.rendererScale();
+        int horizontalMargin = design(32);
+        int verticalMargin = design(32);
+        panelWidth = Math.max(1, Math.min(design(1000), width - horizontalMargin));
+        panelHeight = Math.max(1, Math.min(design(620), height - verticalMargin));
         panelX = (width - panelWidth) / 2;
         panelY = (height - panelHeight) / 2;
-        sidebarWidth = Math.min(194, Math.max(90, panelWidth / 5));
-        sidebarX = panelX + 11;
-        sidebarY = panelY + HEADER_HEIGHT + 9;
-        sidebarHeight = Math.max(1, panelHeight - HEADER_HEIGHT - 20);
-        contentX = panelX + sidebarWidth + 18;
-        contentWidth = Math.max(1, panelX + panelWidth - 17 - contentX);
-        toolbarY = panelY + HEADER_HEIGHT + 9;
+        sidebarWidth = Math.min(design(188), Math.max(design(90), panelWidth / 3));
+        sidebarX = panelX;
+        sidebarY = panelY;
+        sidebarHeight = panelHeight;
+        contentX = panelX + design(212);
+        contentWidth = Math.max(1, panelX + panelWidth - design(20) - contentX);
+        toolbarY = panelY + design(76);
+    }
+
+    private int design(int pixels) {
+        return Math.max(1, Math.round(pixels * layoutScale));
     }
 
     private void addHeaderControls() {
-        int tabX = panelX + sidebarWidth + 44;
-        int tabWidth = Math.min(108, Math.max(76, panelWidth / 9));
-        int tabGap = 10;
-        modulesTab = new CarbonComponents.Button(tabX, panelY + 15, tabWidth, 28,
-                "MODULES", () -> setActiveView(View.MODULES), activeView == View.MODULES, true);
-        settingsTab = new CarbonComponents.Button(tabX + tabWidth + tabGap, panelY + 15,
-                tabWidth, 28, "SETTINGS", () -> setActiveView(View.SETTINGS),
-                activeView == View.SETTINGS, true);
-        closeButton = new CarbonComponents.Button(panelX + panelWidth - 46, panelY + 14,
-                30, 30, "×", this::onClose, false, true);
+        int navX = panelX + design(12);
+        int navWidth = Math.min(design(164), sidebarWidth - design(24));
+        int navHeight = design(40);
+        modulesTab = new CarbonComponents.NavButton(navX, panelY + design(84), navWidth, navHeight,
+                "layout-grid", "Modules", () -> setActiveView(View.MODULES), activeView == View.MODULES);
+        settingsTab = new CarbonComponents.NavButton(navX, panelY + design(128), navWidth, navHeight,
+                "settings", "Settings", () -> setActiveView(View.SETTINGS), activeView == View.SETTINGS);
+        int closeSize = design(28);
+        closeButton = new CarbonComponents.IconButton(
+                panelX + panelWidth - design(42), panelY + design(22), closeSize, closeSize,
+                "x", "Close Carbon menu", this::onClose);
         addRenderableWidget(modulesTab);
         addRenderableWidget(settingsTab);
         addRenderableWidget(closeButton);
@@ -258,50 +280,41 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
     private void addFilterControls() {
         ArrayList<FilterEntry> definitions = new ArrayList<>();
-        definitions.add(new FilterEntry(null, "ALL", null));
+        definitions.add(new FilterEntry(null, "All", null));
         for (Category category : Category.values()) {
-            if (hasModules(category)) {
-                definitions.add(new FilterEntry(category, category.label().toUpperCase(Locale.ROOT), null));
-            }
+            definitions.add(new FilterEntry(category, category.label(), null));
         }
 
         var font = Minecraft.getInstance().font;
-        int requiredWidth = 0;
-        for (int index = 0; index < definitions.size(); index++) {
-            FilterEntry definition = definitions.get(index);
-            int buttonWidth = Math.max(48, CarbonText.width(font, definition.label()) + 22);
-            requiredWidth += buttonWidth + (index == 0 ? 0 : FILTER_GAP);
-        }
-        int searchWidth = Math.min(210, Math.max(96, contentWidth / 3));
-        stackedToolbar = requiredWidth + searchWidth + 12 > contentWidth;
         int filterX = contentX;
+        int filterY = panelY + design(76);
+        int filterHeight = design(32);
         for (FilterEntry definition : definitions) {
-            int buttonWidth = Math.max(48, CarbonText.width(font, definition.label()) + 22);
+            int buttonWidth = Math.max(design(48), CarbonText.width(font, definition.label()) + design(28));
             CarbonComponents.Button button = new CarbonComponents.Button(
-                    filterX, toolbarY, buttonWidth, 26, definition.label(),
+                    filterX, filterY, buttonWidth, filterHeight, definition.label(),
                     () -> selectCategory(definition.category()), definition.category() == selectedCategory,
                     true);
             FilterEntry entry = new FilterEntry(definition.category(), definition.label(), button);
             filterEntries.add(entry);
             addRenderableWidget(button);
-            filterX += buttonWidth + FILTER_GAP;
+            filterX += buttonWidth + design(8);
         }
     }
 
     private void addSearchBox() {
-        int filterEnd = contentX;
-        for (FilterEntry entry : filterEntries) {
-            filterEnd = Math.max(filterEnd, entry.button().getX() + entry.button().getWidth());
-        }
-        int searchY = stackedToolbar ? toolbarY + 32 : toolbarY;
-        int searchX = stackedToolbar ? contentX : filterEnd + 8;
-        int searchWidth = Math.max(72, contentX + contentWidth - searchX);
-        searchBox = new EditBox(Minecraft.getInstance().font, searchX + 7, searchY + 3,
-                Math.max(30, searchWidth - 14), 19, CarbonText.component("SEARCH MODULES"));
+        int searchX = panelX + panelWidth - design(300);
+        int searchY = panelY + design(20);
+        int searchWidth = design(240);
+        int searchHeight = design(36);
+        searchBox = new EditBox(Minecraft.getInstance().font,
+                searchX + design(36), searchY + design(4),
+                Math.max(1, searchWidth - design(48)), Math.max(1, searchHeight - design(8)),
+                CarbonText.component("Search modules"));
         searchBox.setBordered(false);
         searchBox.setTextColor(CarbonTheme.TEXT);
         searchBox.setTextColorUneditable(CarbonTheme.TEXT_MUTED);
-        searchBox.setHint(CarbonText.component("SEARCH MODULES"));
+        searchBox.setHint(CarbonText.component("Search modules"));
         searchBox.setMaxLength(48);
         searchBox.setValue(searchText);
         searchBox.setResponder(value -> {
@@ -309,9 +322,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
             rebuildModuleCards(true);
         });
         addRenderableWidget(searchBox);
-
-        int toolbarRows = stackedToolbar ? 64 : 30;
-        cardsTop = toolbarY + toolbarRows + 8;
+        cardsTop = panelY + design(124);
     }
 
     private void rebuildProfileButtons() {
@@ -328,26 +339,26 @@ public final class CarbonDemoScreen extends CarbonScreen {
         }
 
         List<String> profiles = configManager.listProfiles();
-        int buttonY = sidebarY + 37;
-        int buttonHeight = 27;
-        int gap = 6;
-        int maximumButtons = Math.max(1, (sidebarHeight - 86) / (buttonHeight + gap));
+        int buttonY = panelY + design(222);
+        int buttonHeight = design(30);
+        int gap = design(6);
+        int profileBottom = panelY + panelHeight - design(104);
+        int maximumButtons = Math.max(1, (profileBottom - buttonY) / Math.max(1, buttonHeight + gap));
         int shown = Math.min(profiles.size(), maximumButtons);
         for (int index = 0; index < shown; index++) {
             String profile = profiles.get(index);
             String label = profile.equals("default") ? "DEFAULT" : profile.toUpperCase(Locale.ROOT);
             CarbonComponents.Button button = new CarbonComponents.Button(
-                    sidebarX + 8, buttonY, sidebarWidth - 38, buttonHeight, label,
+                    panelX + design(12), buttonY, sidebarWidth - design(24), buttonHeight, label,
                     () -> selectProfile(profile), profile.equals(configManager.activeProfile()), false);
             profileEntries.add(new ProfileEntry(profile, button));
             addRenderableWidget(button);
             buttonY += buttonHeight + gap;
         }
 
-        int saveY = sidebarY + sidebarHeight - 38;
-        String saveLabel = sidebarWidth < 136 ? "NEW" : "SAVE AS NEW PROFILE";
-        saveProfileButton = new CarbonComponents.Button(sidebarX + 8, saveY,
-                sidebarWidth - 38, 28, saveLabel, this::createProfile, false, true);
+        int saveY = panelY + panelHeight - design(60);
+        saveProfileButton = new CarbonComponents.Button(panelX + design(12), saveY,
+                sidebarWidth - design(24), design(32), "NEW PROFILE", this::createProfile, false, true);
         saveProfileButton.visible = activeView == View.MODULES;
         addRenderableWidget(saveProfileButton);
     }
@@ -371,7 +382,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
             visibleModuleCount++;
             Module selected = module;
             CarbonComponents.ModuleCard card = new CarbonComponents.ModuleCard(
-                    0, 0, 180, 180, module, () -> openModuleSettings(selected));
+                    0, 0, design(240), design(96), module, () -> openModuleSettings(selected));
             moduleCards.add(card);
             addRenderableWidget(card);
         }
@@ -390,23 +401,36 @@ public final class CarbonDemoScreen extends CarbonScreen {
             cardHeight = 0;
             return;
         }
-        gridColumns = contentWidth >= 650 ? 3 : contentWidth >= 410 ? 2 : 1;
+
+        int gap = design(22);
+        int preferredCardWidth = design(240);
+        int minimumCardWidth = design(196);
+        gridColumns = Math.max(1, Math.min(3,
+                (contentWidth + gap) / Math.max(1, minimumCardWidth + gap)));
+        while (gridColumns > 1
+                && (contentWidth - gap * (gridColumns - 1)) / gridColumns < minimumCardWidth) {
+            gridColumns--;
+        }
         gridRows = (moduleCards.size() + gridColumns - 1) / gridColumns;
-        int availableHeight = Math.max(1, panelY + panelHeight - 14 - cardsTop);
-        int targetVisibleRows = Math.min(2, gridRows);
-        cardHeight = Math.max(146, Math.min(208,
-                (availableHeight - (targetVisibleRows - 1) * CARD_GAP) / targetVisibleRows));
+        int availableHeight = Math.max(1, panelY + panelHeight - design(20) - cardsTop);
+        cardHeight = Math.max(1, Math.min(design(96), availableHeight));
         visibleGridRows = Math.max(1, Math.min(gridRows,
-                (availableHeight + CARD_GAP) / (cardHeight + CARD_GAP)));
+                (availableHeight + gap) / Math.max(1, cardHeight + gap)));
         gridScrollRow = Math.max(0, Math.min(gridScrollRow, Math.max(0, gridRows - visibleGridRows)));
+
+        int cardWidth = Math.max(1,
+                (contentWidth - gap * (gridColumns - 1)) / gridColumns);
+        if (gridColumns == 1) {
+            cardWidth = Math.min(contentWidth, Math.max(minimumCardWidth, preferredCardWidth));
+        }
         for (int index = 0; index < moduleCards.size(); index++) {
             int row = index / gridColumns;
             int column = index % gridColumns;
-            int cardWidth = Math.max(1, (contentWidth - CARD_GAP * (gridColumns - 1)) / gridColumns);
-            int x = contentX + column * (cardWidth + CARD_GAP);
-            int y = cardsTop + (row - gridScrollRow) * (cardHeight + CARD_GAP);
+            int x = contentX + column * (cardWidth + gap);
+            int y = cardsTop + (row - gridScrollRow) * (cardHeight + gap);
             CarbonComponents.ModuleCard card = moduleCards.get(index);
             card.setRectangle(cardWidth, cardHeight, x, y);
+            card.updateDescriptionWidth(Math.max(1, cardWidth - design(112)));
             card.visible = row >= gridScrollRow && row < gridScrollRow + visibleGridRows;
         }
     }
@@ -423,30 +447,30 @@ public final class CarbonDemoScreen extends CarbonScreen {
             return;
         }
 
-        int controlX = contentX + 20;
-        int controlWidth = Math.max(90, Math.min(490, contentWidth - 40));
-        int controlY = panelY + HEADER_HEIGHT + 94;
+        int controlX = contentX + design(20);
+        int controlWidth = Math.max(design(90), Math.min(design(490), contentWidth - design(40)));
+        int controlY = panelY + design(124);
         for (Setting<?> setting : selectedModule.settings()) {
             AbstractWidget control = null;
             int controlHeight;
             if (setting instanceof NumberSetting numberSetting) {
-                controlHeight = 40;
+                controlHeight = design(40);
                 control = new CarbonComponents.Slider(controlX, controlY, controlWidth, controlHeight,
                         numberSetting);
             } else if (setting instanceof BoolSetting boolSetting) {
-                controlHeight = 32;
+                controlHeight = design(32);
                 control = new CarbonComponents.Toggle(controlX, controlY, controlWidth, controlHeight,
                         boolSetting);
             } else if (setting instanceof ModeSetting modeSetting) {
-                controlHeight = 32;
+                controlHeight = design(32);
                 control = new CarbonComponents.ModeButton(controlX, controlY, controlWidth, controlHeight,
                         modeSetting);
             } else if (setting instanceof ColorSetting colorSetting) {
-                controlHeight = 32;
+                controlHeight = design(32);
                 control = new CarbonComponents.ColorButton(controlX, controlY, controlWidth, controlHeight,
                         colorSetting);
             } else if (setting instanceof KeybindSetting keybindSetting) {
-                controlHeight = 32;
+                controlHeight = design(32);
                 control = new CarbonComponents.KeybindButton(controlX, controlY, controlWidth, controlHeight,
                         keybindSetting, () -> beginKeybindCapture(keybindSetting));
             } else {
@@ -454,47 +478,62 @@ public final class CarbonDemoScreen extends CarbonScreen {
             }
             settingControls.add(control);
             addRenderableWidget(control);
-            controlY += controlHeight + 7;
+            controlY += controlHeight + design(7);
         }
     }
 
     private void drawModulesSurface(GuiGraphicsExtractor graphics) {
-        int searchWidth = Math.max(72, contentX + contentWidth - (stackedToolbar ? contentX : lastFilterEnd() + 8));
-        int searchY = stackedToolbar ? toolbarY + 32 : toolbarY;
-        int searchX = stackedToolbar ? contentX : lastFilterEnd() + 8;
-        CarbonGlass.drawTintedRect(graphics, searchX, searchY, searchWidth, 26,
-                7.0f, CarbonTheme.PANEL_RAISED);
-        CarbonGlass.outlineTintedRect(graphics, searchX, searchY, searchWidth, 26,
-                7.0f, CarbonTheme.BORDER_SOFT, CarbonTheme.PANEL_RAISED);
+        int searchX = panelX + panelWidth - design(300);
+        int searchY = panelY + design(20);
+        CarbonGlass.drawTintedRect(graphics, searchX, searchY, design(240), design(36),
+                design(18), 0x5B1B2821);
+        CarbonGlass.outlineTintedRect(graphics, searchX, searchY, design(240), design(36),
+                design(18), 0x447D9C86, 0x4B1B2821);
         if (visibleModuleCount == 0) {
             graphics.nextStratum();
-            CarbonText.centered(graphics, Minecraft.getInstance().font, "NO MODULES FOUND",
-                    contentX + contentWidth / 2, cardsTop + 24, CarbonTheme.TEXT_MUTED, false);
+            CarbonText.centered(graphics, Minecraft.getInstance().font, "No modules found",
+                    contentX + contentWidth / 2, cardsTop + design(24), CarbonTheme.TEXT_MUTED, false);
+        }
+
+        if (gridRows > visibleGridRows && visibleGridRows > 0) {
+            int trackX = panelX + panelWidth - design(9);
+            int trackY = cardsTop;
+            int trackHeight = Math.max(1, panelY + panelHeight - design(20) - cardsTop);
+            int thumbHeight = Math.max(design(24), trackHeight * visibleGridRows / gridRows);
+            int maxScroll = Math.max(1, gridRows - visibleGridRows);
+            int thumbY = trackY + (trackHeight - thumbHeight) * gridScrollRow / maxScroll;
+            CarbonGlass.drawTintedRect(graphics, trackX, trackY, design(4), trackHeight,
+                    design(2), 0x3EFFFFFF);
+            CarbonGlass.drawTintedRect(graphics, trackX, thumbY, design(4), thumbHeight,
+                    design(2), 0xB833D889);
         }
     }
 
     private void drawSettingsSurface(GuiGraphicsExtractor graphics) {
-        CarbonGlass.drawTintedRect(graphics, contentX, toolbarY, contentWidth,
-                panelY + panelHeight - toolbarY - 14, 14.0f, CarbonTheme.PANEL);
-        CarbonGlass.outlineTintedRect(graphics, contentX, toolbarY, contentWidth,
-                panelY + panelHeight - toolbarY - 14, 14.0f, CarbonTheme.BORDER_SOFT, CarbonTheme.PANEL);
+        int surfaceY = panelY + design(76);
+        int surfaceHeight = Math.max(1, panelY + panelHeight - design(16) - surfaceY);
+        CarbonGlass.drawPanelGui(graphics, contentX, surfaceY, contentWidth, surfaceHeight,
+                16.0f, CarbonGlass.Style.CARD_OFF);
         if (selectedModule == null) {
             graphics.nextStratum();
-            CarbonText.centered(graphics, Minecraft.getInstance().font, "NO MODULE SELECTED",
-                    contentX + contentWidth / 2, toolbarY + 40, CarbonTheme.TEXT_MUTED, false);
+            CarbonText.centered(graphics, Minecraft.getInstance().font, "No module selected",
+                    contentX + contentWidth / 2, surfaceY + design(40), CarbonTheme.TEXT_MUTED, false);
         }
     }
 
-    private int lastFilterEnd() {
-        if (filterEntries.isEmpty()) {
-            return contentX;
+    private void updateScreenTitle() {
+        if (activeView == View.SETTINGS) {
+            screenTitle = "Module Settings";
+        } else if (selectedCategory == null) {
+            screenTitle = "All Modules";
+        } else {
+            screenTitle = selectedCategory.label() + " Modules";
         }
-        FilterEntry last = filterEntries.get(filterEntries.size() - 1);
-        return last.button().getX() + last.button().getWidth();
     }
 
     private void selectCategory(Category category) {
         selectedCategory = category;
+        updateScreenTitle();
         for (FilterEntry entry : filterEntries) {
             entry.button().setAccent(entry.category() == category);
         }
@@ -534,6 +573,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
             return;
         }
         activeView = view;
+        updateScreenTitle();
         modulesTab.setAccent(view == View.MODULES);
         settingsTab.setAccent(view == View.SETTINGS);
         updateVisibility();
@@ -547,6 +587,12 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
     private void updateVisibility() {
         boolean showingModules = activeView == View.MODULES;
+        if (modulesTab != null) {
+            modulesTab.setAccent(showingModules);
+        }
+        if (settingsTab != null) {
+            settingsTab.setAccent(!showingModules);
+        }
         for (FilterEntry entry : filterEntries) {
             entry.button().visible = showingModules;
         }
@@ -560,21 +606,15 @@ public final class CarbonDemoScreen extends CarbonScreen {
         if (searchBox != null) {
             searchBox.visible = showingModules;
         }
+        for (ProfileEntry entry : profileEntries) {
+            entry.button().visible = showingModules;
+        }
         if (saveProfileButton != null) {
             saveProfileButton.visible = showingModules;
         }
         for (AbstractWidget control : settingControls) {
             control.visible = !showingModules;
         }
-    }
-
-    private boolean hasModules(Category category) {
-        for (Module module : modules.modules()) {
-            if (module.category() == category) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private Module firstModule() {

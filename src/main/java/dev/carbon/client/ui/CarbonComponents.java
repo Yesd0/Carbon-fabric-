@@ -52,7 +52,8 @@ public final class CarbonComponents {
 
         protected final void drawSurface(GuiGraphicsExtractor graphics, int normal, int highlighted) {
             int color = CarbonTheme.mix(normal, highlighted, animateHover());
-            CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(), 7.0f, color);
+            CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
+                    7.0f * UiScale.rendererScale(), color);
         }
 
         protected final void drawLabel(GuiGraphicsExtractor graphics, String text, int color, int inset) {
@@ -109,12 +110,87 @@ public final class CarbonComponents {
         }
     }
 
+    /** Compact icon-only action using a real Carbon atlas image. */
+    public static final class IconButton extends Widget {
+        private final String iconName;
+        private final Runnable action;
+
+        public IconButton(int x, int y, int width, int height, String iconName,
+                          String narrationLabel, Runnable action) {
+            super(x, y, width, height, narrationLabel);
+            this.iconName = iconName;
+            this.action = action;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            drawSurface(graphics, 0x1AFFFFFF, 0x36FFFFFF);
+            beginTextLayer(graphics);
+            int iconSize = Math.max(1, Math.min(getWidth(), getHeight()) * 2 / 3);
+            CarbonIcons.drawGui(graphics, iconName,
+                    getX() + (getWidth() - iconSize) / 2,
+                    getY() + (getHeight() - iconSize) / 2,
+                    iconSize, CarbonTheme.TEXT);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            action.run();
+        }
+    }
+
+    /** Sidebar navigation button with a bundled Carbon atlas icon. */
+    public static final class NavButton extends Widget {
+        private final String iconName;
+        private final Runnable action;
+        private boolean accent;
+
+        public NavButton(int x, int y, int width, int height, String iconName, String label,
+                         Runnable action, boolean accent) {
+            super(x, y, width, height, label);
+            this.iconName = iconName;
+            this.action = action;
+            this.accent = accent;
+        }
+
+        public void setAccent(boolean accent) {
+            this.accent = accent;
+        }
+
+        @Override
+        protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
+            int normal = accent ? 0x2A33D889 : 0x13FFFFFF;
+            int hover = accent ? 0x4A3FE895 : 0x18FFFFFF;
+            drawSurface(graphics, normal, hover);
+            beginTextLayer(graphics);
+            int iconSize = design(20);
+            int iconX = getX() + design(16);
+            int iconY = getY() + (getHeight() - iconSize) / 2;
+            CarbonIcons.drawGui(graphics, iconName, iconX, iconY, iconSize,
+                    accent ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED);
+            int textY = getY() + (getHeight() - design(14)) / 2;
+            CarbonText.drawUi(graphics, Minecraft.getInstance().font, label(),
+                    CarbonText.Weight.MEDIUM, 14.0f, getX() + design(48), textY,
+                    accent ? CarbonTheme.TEXT : CarbonTheme.TEXT_MUTED, false);
+        }
+
+        @Override
+        public void onPress(InputWithModifiers input) {
+            action.run();
+        }
+
+        private int design(int pixels) {
+            return Math.max(1, Math.round(pixels * UiScale.rendererScale()));
+        }
+    }
+
     /** Card-style module control with distinct options and enabled-state click zones. */
     public static final class ModuleCard extends Widget {
         private final Module module;
         private final Runnable openOptions;
         private final String categoryLabel;
         private final String iconName;
+        private String shortDescription;
 
         public ModuleCard(int x, int y, int width, int height, Module module, Runnable openOptions) {
             super(x, y, width, height, module.name());
@@ -122,67 +198,92 @@ public final class CarbonComponents {
             this.openOptions = openOptions;
             this.categoryLabel = module.category().label().toUpperCase(java.util.Locale.ROOT);
             this.iconName = iconFor(module);
+            this.shortDescription = module.description();
         }
 
         public Module module() {
             return module;
         }
 
+        public void updateDescriptionWidth(int maximumWidth) {
+            var font = Minecraft.getInstance().font;
+            String source = module.description();
+            if (CarbonText.width(font, source) <= maximumWidth) {
+                shortDescription = source;
+                return;
+            }
+            String suffix = "…";
+            int end = source.length();
+            while (end > 0 && CarbonText.width(font, source.substring(0, end) + suffix) > maximumWidth) {
+                end--;
+            }
+            shortDescription = end == 0 ? suffix : source.substring(0, end).stripTrailing() + suffix;
+        }
+
+        private int design(int pixels) {
+            return Math.max(1, Math.round(pixels * UiScale.rendererScale()));
+        }
+
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float delta) {
-            int surface = CarbonTheme.mix(CarbonTheme.CARD, CarbonTheme.CARD_HOVER, animateHover());
-            CarbonGlass.outlineTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
-                    12.0f, CarbonTheme.BORDER_SOFT, surface);
+            boolean enabled = module.enabled();
+            float hover = animateHover();
+            CarbonGlass.drawPanelGui(graphics, getX(), getY(), getWidth(), getHeight(), 16.0f,
+                    enabled ? CarbonGlass.Style.CARD_ON : CarbonGlass.Style.CARD_OFF);
+            if (hover > 0.001f) {
+                int alpha = Math.round(12.0f * hover);
+                CarbonGlass.drawTintedRect(graphics, getX(), getY(), getWidth(), getHeight(),
+                        16.0f, (alpha << 24) | 0x00FFFFFF);
+            }
 
-            int stateHeight = statusHeight();
-            int optionsHeight = stateHeight;
-            int stateY = getY() + getHeight() - stateHeight;
-            int optionsY = stateY - optionsHeight - 2;
-            int iconSize = Math.min(50, Math.max(34, Math.min(getWidth() / 4, optionsY - getY() - 28)));
-            int iconX = getX() + (getWidth() - iconSize) / 2;
-            int iconY = getY() + 10;
-            int iconSurface = module.enabled() ? CarbonTheme.ACCENT_MUTED : CarbonTheme.PANEL_RAISED;
-            CarbonGlass.outlineTintedRect(graphics, iconX, iconY, iconSize, iconSize, 12.0f,
-                    CarbonTheme.BORDER_SOFT, iconSurface);
+            int margin = design(16);
+            int tileSize = design(44);
+            int iconSize = design(22);
+            int tileX = getX() + margin;
+            int tileY = getY() + margin;
+            CarbonGlass.drawTintedRect(graphics, tileX, tileY, tileSize, tileSize, design(12),
+                    enabled ? 0x7545D78A : 0x55FFFFFF);
+
+            int toggleWidth = design(40);
+            int toggleHeight = design(22);
+            int toggleX = getX() + getWidth() - design(16) - toggleWidth;
+            int toggleY = getY() + design(16);
+            CarbonGlass.drawTintedRect(graphics, toggleX, toggleY, toggleWidth, toggleHeight,
+                    toggleHeight * 0.5f, enabled ? 0xE522B96A : 0x88465158);
+            int knobSize = design(14);
+            int knobX = enabled ? toggleX + toggleWidth - design(18) : toggleX + design(4);
+            int knobY = toggleY + (toggleHeight - knobSize) / 2;
+            CarbonGlass.drawTintedRect(graphics, knobX, knobY, knobSize, knobSize,
+                    knobSize * 0.5f, 0xFFF4FFF8);
+
+            int settingsSize = design(20);
+            int settingsX = getX() + getWidth() - margin - settingsSize;
+            int settingsY = getY() + getHeight() - design(16) - settingsSize;
+            CarbonGlass.drawTintedRect(graphics, settingsX, settingsY, settingsSize, settingsSize,
+                    design(6), 0x487D9C86);
 
             var font = Minecraft.getInstance().font;
+            int textX = getX() + design(72);
+            int titleY = getY() + design(18);
+            int descriptionY = getY() + design(42);
+            int chipY = getY() + design(66);
             graphics.nextStratum();
             CarbonIcons.drawGui(graphics, iconName,
-                    getX() + (getWidth() - 22) / 2, iconY + (iconSize - 22) / 2,
-                    22, module.enabled() ? CarbonTheme.TEXT : 0xB3F1F7F2);
-            int titleY = iconY + iconSize + 7;
-            CarbonText.centered(graphics, font, module.name(), getX() + getWidth() / 2,
-                    titleY, CarbonTheme.TEXT, false);
-            CarbonText.centered(graphics, font, categoryLabel, getX() + getWidth() / 2,
-                    titleY + font.lineHeight + 2, CarbonTheme.TEXT_DIM, false);
-
-            int rowX = getX() + 1;
-            int rowWidth = getWidth() - 2;
-            int gearWidth = Math.min(36, Math.max(26, rowWidth / 5));
-            int gearX = rowX + rowWidth - gearWidth;
-            CarbonGlass.drawTintedRect(graphics, rowX, optionsY, rowWidth, optionsHeight,
-                    0.0f, CarbonTheme.PANEL_RAISED);
-            CarbonGlass.drawTintedRect(graphics, rowX, optionsY, rowWidth, 1, 0.5f,
-                    CarbonTheme.BORDER_SOFT);
-            CarbonGlass.drawTintedRect(graphics, gearX, optionsY, gearWidth, optionsHeight,
-                    0.0f, CarbonTheme.PANEL_HOVER);
-            CarbonGlass.drawTintedRect(graphics, gearX, optionsY, 1, optionsHeight,
-                    0.5f, CarbonTheme.BORDER_SOFT);
+                    tileX + (tileSize - iconSize) / 2, tileY + (tileSize - iconSize) / 2,
+                    iconSize, enabled ? CarbonTheme.TEXT : 0xB3F1F7F2);
+            CarbonText.drawUi(graphics, font, module.name(), CarbonText.Weight.SEMIBOLD,
+                    15.0f, textX, titleY, CarbonTheme.TEXT, false);
+            CarbonText.draw(graphics, font, shortDescription, textX, descriptionY,
+                    0x8CF1F7F2, false);
+            int chipWidth = Math.max(design(58), CarbonText.width(font, categoryLabel) + design(16));
+            CarbonGlass.drawTintedRect(graphics, textX, chipY, chipWidth, design(18),
+                    design(9), enabled ? 0x553FE18E : 0x37FFFFFF);
             graphics.nextStratum();
-            int optionsCenterX = rowX + (rowWidth - gearWidth) / 2;
-            CarbonText.centered(graphics, font, "OPTIONS", optionsCenterX,
-                    optionsY + (optionsHeight - font.lineHeight) / 2, CarbonTheme.TEXT, false);
-            CarbonIcons.drawGui(graphics, "settings",
-                    gearX + (gearWidth - 18) / 2, optionsY + (optionsHeight - 18) / 2,
-                    18, CarbonTheme.ACCENT);
-
-            int stateColor = module.enabled() ? CarbonTheme.SUCCESS_SURFACE : CarbonTheme.ERROR_SURFACE;
-            CarbonGlass.drawTintedRect(graphics, rowX, stateY, rowWidth, stateHeight,
-                    0.0f, stateColor);
-            graphics.nextStratum();
-            CarbonText.centered(graphics, font, module.enabled() ? "ENABLED" : "DISABLED",
-                    getX() + getWidth() / 2, stateY + (stateHeight - font.lineHeight) / 2,
-                    CarbonTheme.TEXT, false);
+            CarbonText.drawUi(graphics, font, categoryLabel, CarbonText.Weight.MEDIUM,
+                    10.0f, textX + design(8), chipY + design(3),
+                    enabled ? CarbonTheme.TEXT : CarbonTheme.TEXT_MUTED, false);
+            CarbonIcons.drawGui(graphics, "settings", settingsX + (settingsSize - design(16)) / 2,
+                    settingsY + (settingsSize - design(16)) / 2, design(16), CarbonTheme.TEXT_MUTED);
         }
 
         @Override
@@ -198,15 +299,21 @@ public final class CarbonComponents {
             }
             setFocused(true);
             playDownSound(Minecraft.getInstance().getSoundManager());
-            if (event.y() - getY() >= getHeight() - statusHeight()) {
+            double relativeX = event.x() - getX();
+            double relativeY = event.y() - getY();
+            int toggleLeft = getWidth() - design(16) - design(40);
+            int toggleTop = design(16);
+            int settingsLeft = getWidth() - design(16) - design(20);
+            int settingsTop = getHeight() - design(16) - design(20);
+            if (relativeY >= toggleTop && relativeY <= toggleTop + design(22)
+                    && relativeX >= toggleLeft && relativeX <= toggleLeft + design(40)) {
                 module.toggle();
+            } else if (relativeY >= settingsTop && relativeY <= settingsTop + design(20)
+                    && relativeX >= settingsLeft && relativeX <= settingsLeft + design(20)) {
+                openOptions.run();
             } else {
                 openOptions.run();
             }
-        }
-
-        private int statusHeight() {
-            return Math.max(22, Math.min(31, getHeight() / 7));
         }
 
         private static String iconFor(Module module) {

@@ -48,7 +48,7 @@ def write_provider(font_key: str, output: Path) -> None:
         "providers": [
             {
                 "type": "ttf",
-                "file": f"inter_{font_key}.ttf",
+                "file": f"carbonclient:font/inter_{font_key}.ttf",
                 "shift": [0.0, 0.0],
                 "size": BASE_SIZE,
                 "oversample": OVERSAMPLE,

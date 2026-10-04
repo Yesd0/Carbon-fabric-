@@ -92,6 +92,11 @@ public final class UiScale {
         return Math.round(designPx * uiScale) / uiScale;
     }
 
+    /** Snaps an ordinary Minecraft GUI coordinate to a whole framebuffer pixel. */
+    public static float snapGui(float guiPx) {
+        return Math.round(guiPx * guiScale) / (float) guiScale;
+    }
+
     public static int framebufferPixels(float designPx) {
         return Math.round(designPx * uiScale);
     }

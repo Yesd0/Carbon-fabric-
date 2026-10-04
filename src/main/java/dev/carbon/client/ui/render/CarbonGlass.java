@@ -73,6 +73,46 @@ public final class CarbonGlass {
                 snappedRadius, scale, mode, 0xFFFFFFFF);
     }
 
+    /** Glass surface for widgets positioned in ordinary Minecraft GUI coordinates. */
+    public static void drawPanelGui(GuiGraphicsExtractor graphics, float x, float y,
+                                    float width, float height, float radiusDesign, Style style) {
+        if (width <= 0.0f || height <= 0.0f) {
+            return;
+        }
+        UiScale.update(Minecraft.getInstance());
+        RenderPipeline pipeline = CarbonRenderPipelines.glass();
+        if (pipeline == null) {
+            reportFailure("SDF glass shader is unavailable", null);
+            return;
+        }
+
+        float left = UiScale.snapGui(x);
+        float top = UiScale.snapGui(y);
+        float snappedWidth = Math.max(1.0f / UiScale.guiScale(), UiScale.snapGui(width));
+        float snappedHeight = Math.max(1.0f / UiScale.guiScale(), UiScale.snapGui(height));
+        float pixelScale = UiScale.uiScale();
+
+        if (style == Style.MAIN) {
+            submitGuiShadow(graphics, pipeline, left, top, snappedWidth, snappedHeight,
+                    radiusDesign, pixelScale, MODE_SHADOW_MAIN, 60.0f, 24.0f);
+        } else {
+            submitGuiShadow(graphics, pipeline, left, top, snappedWidth, snappedHeight,
+                    radiusDesign, pixelScale, MODE_SHADOW_CARD, 24.0f, 8.0f);
+            if (style == Style.CARD_ON) {
+                submitGuiShadow(graphics, pipeline, left, top, snappedWidth, snappedHeight,
+                        radiusDesign, pixelScale, MODE_GLOW_CARD, 20.0f, 0.0f);
+            }
+        }
+
+        int mode = switch (style) {
+            case MAIN -> MODE_MAIN;
+            case CARD_OFF -> MODE_CARD_OFF;
+            case CARD_ON -> MODE_CARD_ON;
+        };
+        submit(graphics, pipeline, left, top, snappedWidth, snappedHeight,
+                radiusDesign, pixelScale, mode, 0xFFFFFFFF);
+    }
+
     /** Design-pixel translucent helper for small controls inside a Carbon design-space transform. */
     public static void drawTintedRectDesign(GuiGraphicsExtractor graphics, float x, float y,
                                             float width, float height, float radius, int argb) {
@@ -173,6 +213,18 @@ public final class CarbonGlass {
         }
         CarbonText.draw(graphics, Minecraft.getInstance().font, failureLabel,
                 24, 24, 0xFFFF6670, false);
+    }
+
+    private static void submitGuiShadow(GuiGraphicsExtractor graphics, RenderPipeline pipeline,
+                                        float x, float y, float width, float height, float radius,
+                                        float pixelScale, int mode, float spreadDesign, float offsetYDesign) {
+        float rendererScale = UiScale.rendererScale();
+        float expansion = UiScale.snap(spreadDesign) * rendererScale;
+        float offsetY = UiScale.snap(offsetYDesign) * rendererScale;
+        submit(graphics, pipeline,
+                x - expansion, y + offsetY - expansion,
+                width + expansion * 2.0f, height + expansion * 2.0f,
+                radius, pixelScale, mode, 0xFFFFFFFF);
     }
 
     private static void submitShadow(GuiGraphicsExtractor graphics, RenderPipeline pipeline,
