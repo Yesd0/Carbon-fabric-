@@ -2,7 +2,6 @@ package dev.carbon.client.ui;
 
 /** Opaque grayscale palette shared by Carbon's compact module menu. Colors use ARGB. */
 public final class CarbonTheme {
-    public static final int BACKGROUND = 0xFF08090B;
     public static final int FRAME = 0xFF0D0F12;
     public static final int SIDEBAR = 0xFF101215;
     public static final int PANEL = 0xFF141619;

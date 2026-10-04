@@ -5,6 +5,7 @@ import dev.carbon.client.core.event.ClientTickEvent;
 import dev.carbon.client.core.event.EventBus;
 import dev.carbon.client.core.config.ConfigManager;
 import dev.carbon.client.core.module.ModuleManager;
+import dev.carbon.client.ui.render.CarbonShapes;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -33,6 +34,11 @@ public final class CarbonUI {
 
         moduleManager = modules;
         configManager = config;
+        try {
+            CarbonShapes.initialize();
+        } catch (Throwable failure) {
+            LOGGER.error("Carbon smooth-shape pipeline registration failed; the menu will use native fills", failure);
+        }
         KeyMapping.Category category = KeyMapping.Category.register(CATEGORY_ID);
         openMenuKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.carbonclient.open_menu",

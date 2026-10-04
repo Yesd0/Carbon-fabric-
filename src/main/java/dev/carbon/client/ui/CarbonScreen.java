@@ -4,7 +4,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
-/** Shared opaque, non-pausing Carbon screen behavior. */
+/** Shared non-pausing Carbon screen behavior; live gameplay remains clear behind the UI surfaces. */
 public abstract class CarbonScreen extends Screen {
     private final Screen parent;
 
@@ -14,9 +14,9 @@ public abstract class CarbonScreen extends Screen {
     }
 
     @Override
-    protected void extractBlurredBackground(GuiGraphicsExtractor graphics) {
-        // Deliberately opaque: Carbon screens never request or draw a glass/blurred backdrop.
-        graphics.fill(0, 0, width, height, CarbonTheme.BACKGROUND);
+    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        // Intentionally leave the frame untouched: keep the live world visible, without a pause,
+        // full-screen fill, blur, or glass effect. CarbonMenuScreen draws its own opaque panels.
     }
 
     @Override
@@ -26,7 +26,7 @@ public abstract class CarbonScreen extends Screen {
 
     @Override
     public boolean isInGameUi() {
-        return false;
+        return true;
     }
 
     @Override

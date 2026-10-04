@@ -27,20 +27,20 @@ The Carbon menu key is registered in Minecraft's normal **Options â†’ Controls â
 
 ## Menu
 
-The menu uses an opaque, solid black-and-white palette with rounded panels, compact module cards, subtle hover/enable/entry animations, and no glass, blur, or translucent surfaces. It includes:
+The menu uses opaque grayscale panels over the live, unpaused world. Solid rounded surfaces have shader-antialiased edges; there is no full-screen cover, glass treatment, or blur. It includes:
 
 - The current Minecraft username and a 3D head rendered from the local player's skin.
 - Live module categories and search across module names, descriptions, and IDs.
 - Module cards that toggle the real module when clicked; enabled state is informational, not a separate ON/OFF control.
 - A settings gear on every module card that opens that module's actual typed settings.
 - Working Essentials, PvP, and Creator presets that update the registered starter modules.
-- Persistent UI scale and a bundled Carbon Display font, with a one-click Minecraft-font fallback if the custom face is not legible on a particular client.
+- Persistent UI scale and bundled Inter regular/medium/semibold/bold faces, with a one-click Minecraft-font fallback and vanilla glyph references for unsupported characters.
 - Saved configuration profiles backed by Carbon's existing config manager.
 
 The retained starter modules are FPS, CPS, Keystrokes, and Zoom. Module values, keybinds, enabled state, and profiles are stored locally under `.minecraft/config/carbonclient/`. Menu scale and font preference are stored in `menu.json`; Minecraft stores the menu-opening key with its normal options. The mod makes no network calls.
 
 ## Bundled assets and validation
 
-Bundled Inter/Carbon font resources, their licenses, and the Lucide icon atlas remain in the project. Carbon's glass shader, blur helpers, F8 test screen, and F7 layout-debug path have been removed. The UI draws its rounded surfaces with ordinary opaque GUI fills; there is no shader or glass fallback path.
+Bundled Inter font resources and licenses, the Lucide icon atlas, and a small solid rounded-rectangle shader remain in the project. The shader only computes antialiased coverage for opaque grayscale fills; it does not sample or blur the world. Carbon's glass shader, blur helpers, F8 test screen, and F7 layout-debug path have been removed.
 
-The GitHub Actions workflow builds the next immutable test release as `v1.0.0-test.8` with Java 25. CI verifies compilation and packaging, not in-game behavior. The sandbox has no Minecraft runtime, so the menu, keybind screen, skin portrait, settings, profiles, and scale still need hands-on verification in Minecraft.
+The GitHub Actions workflow builds the next immutable test release as `v1.0.0-test.9` with Java 25. CI verifies compilation and packaging, not in-game behavior. The sandbox has no Minecraft runtime, so the live gameplay backdrop, keybind screen, skin portrait, settings, profiles, and scale still need hands-on verification in Minecraft.

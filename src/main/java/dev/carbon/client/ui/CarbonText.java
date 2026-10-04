@@ -11,12 +11,11 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 
-/** Cached Carbon Display components and design-pixel text placement for Carbon screens. */
+/** Cached Inter components and design-pixel text placement for Carbon screens. */
 public final class CarbonText {
     public static final float FONT_BASE_SIZE = 16.0f;
     private static final float LEGACY_TEXT_SIZE = 12.0f;
     private static final int CACHE_LIMIT = 768;
-    private static final Identifier DISPLAY_FONT = Identifier.fromNamespaceAndPath("carbonclient", "carbon_display");
     private static final Map<Weight, Map<String, Component>> COMPONENTS = new EnumMap<>(Weight.class);
     private static boolean customFontEnabled = true;
 
@@ -39,14 +38,11 @@ public final class CarbonText {
         if (cached != null) {
             return cached;
         }
-        Style style = switch (weight) {
-            case SEMIBOLD, BOLD -> Style.EMPTY.withBold(true);
-            case REGULAR, MEDIUM -> Style.EMPTY;
-        };
-        if (customFontEnabled) {
-            // The bundled TTF provider includes a vanilla glyph reference as a missing-glyph fallback.
-            style = style.withFont(new FontDescription.Resource(DISPLAY_FONT));
-        }
+        // Use the matching bundled Inter weight directly. When switched off, retain a clear
+        // vanilla fallback and only synthesize bold for weights that need it.
+        Style style = customFontEnabled
+                ? Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId))
+                : Style.EMPTY.withBold(weight.boldFallback);
         Component created = Component.literal(text).withStyle(style);
         if (cache.size() >= CACHE_LIMIT) {
             cache.clear();
@@ -55,7 +51,7 @@ public final class CarbonText {
         return created;
     }
 
-    /** Applies the bundled Carbon Display face or Minecraft's dependable default glyph provider. */
+    /** Applies the bundled Inter face or Minecraft's dependable default glyph provider. */
     public static void setCustomFontEnabled(boolean enabled) {
         if (customFontEnabled == enabled) {
             return;
@@ -64,7 +60,7 @@ public final class CarbonText {
         COMPONENTS.values().forEach(Map::clear);
     }
 
-    /** Optional legacy Inter bitmap component, retained for compatibility with existing assets. */
+    /** Explicit bundled Inter component, useful to consumers outside the menu's preference switch. */
     public static Component bundledFontComponent(String text, Weight weight) {
         return Component.literal(text).withStyle(
                 Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId)));
@@ -154,15 +150,17 @@ public final class CarbonText {
     }
 
     public enum Weight {
-        REGULAR("carbon_inter_regular"),
-        MEDIUM("carbon_inter_medium"),
-        SEMIBOLD("carbon_inter_semibold"),
-        BOLD("carbon_inter_bold");
+        REGULAR("carbon_inter_regular", false),
+        MEDIUM("carbon_inter_medium", false),
+        SEMIBOLD("carbon_inter_semibold", true),
+        BOLD("carbon_inter_bold", true);
 
         private final Identifier fontId;
+        private final boolean boldFallback;
 
-        Weight(String path) {
+        Weight(String path, boolean boldFallback) {
             this.fontId = Identifier.fromNamespaceAndPath("carbonclient", path);
+            this.boldFallback = boldFallback;
         }
     }
 }

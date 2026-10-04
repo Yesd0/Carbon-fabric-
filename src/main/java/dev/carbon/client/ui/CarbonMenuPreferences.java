@@ -19,6 +19,7 @@ import java.nio.file.StandardOpenOption;
 public final class CarbonMenuPreferences {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final int CURRENT_SCHEMA_VERSION = 3;
     private static final float MIN_SCALE = 0.75f;
     private static final float MAX_SCALE = 1.50f;
 
@@ -37,7 +38,12 @@ public final class CarbonMenuPreferences {
         }
         try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             JsonObject root = JsonParser.parseReader(reader).getAsJsonObject();
-            if (root.has("customFont") && root.get("customFont").isJsonPrimitive()) {
+            int schemaVersion = root.has("schemaVersion") && root.get("schemaVersion").isJsonPrimitive()
+                    ? root.get("schemaVersion").getAsInt() : 0;
+            // The old Carbon Display TTF path could silently render as Minecraft's fallback.
+            // Start users on the now-bundled Inter face once, while preserving future opt-outs.
+            if (schemaVersion >= CURRENT_SCHEMA_VERSION
+                    && root.has("customFont") && root.get("customFont").isJsonPrimitive()) {
                 preferences.customFont = root.get("customFont").getAsBoolean();
             }
             if (root.has("uiScale") && root.get("uiScale").isJsonPrimitive()) {
@@ -74,7 +80,7 @@ public final class CarbonMenuPreferences {
 
     private void save() {
         JsonObject root = new JsonObject();
-        root.addProperty("schemaVersion", 2);
+        root.addProperty("schemaVersion", CURRENT_SCHEMA_VERSION);
         root.addProperty("customFont", customFont);
         root.addProperty("uiScale", uiScale);
         Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
