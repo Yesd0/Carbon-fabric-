@@ -143,17 +143,12 @@ public final class CarbonDemoScreen extends CarbonScreen {
 
         // Darken, but do not replace, the blurred world backdrop. The moving test pattern stays F8-only.
         graphics.nextStratum();
-        CarbonGlass.drawTintedRect(graphics, 0, 0, width, height, 0.0f, 0x62050A08);
+        int scrimAlpha = Math.round(0x62 * entry);
+        CarbonGlass.drawTintedRect(graphics, 0, 0, width, height, 0.0f,
+                (scrimAlpha << 24) | 0x00050A08);
 
+        // Keep widget hitboxes aligned with their visible positions during the opening fade.
         graphics.nextStratum();
-        graphics.pose().pushMatrix();
-        float centerX = panelX + panelWidth * 0.5f;
-        float centerY = panelY + panelHeight * 0.5f;
-        float panelScale = 0.985f + 0.015f * entry;
-        graphics.pose().translate(centerX, centerY);
-        graphics.pose().scale(panelScale, panelScale);
-        graphics.pose().translate(-centerX, -centerY + (1.0f - entry) * design(14));
-
         CarbonGlass.drawPanelGui(graphics, panelX, panelY, panelWidth, panelHeight,
                 22.0f, CarbonGlass.Style.MAIN);
         CarbonGlass.drawTintedRect(graphics, panelX, panelY, sidebarWidth, panelHeight,
@@ -180,7 +175,6 @@ public final class CarbonDemoScreen extends CarbonScreen {
         drawSettingsHeader(graphics);
         drawToast(graphics);
 
-        graphics.pose().popMatrix();
         CarbonGlass.drawFailureLabelGui(graphics);
     }
 
@@ -421,7 +415,8 @@ public final class CarbonDemoScreen extends CarbonScreen {
             visibleModuleCount++;
             Module selected = module;
             CarbonComponents.ModuleCard card = new CarbonComponents.ModuleCard(
-                    0, 0, design(240), design(128), module, () -> openModuleSettings(selected));
+                    0, 0, design(360), design(148), module, () -> openModuleSettings(selected),
+                    () -> showToast(selected.name() + (selected.enabled() ? " enabled" : " disabled")));
             card.setEntranceDelayMillis((moduleCards.size() % 9) * 42L);
             moduleCards.add(card);
             addRenderableWidget(card);
@@ -443,7 +438,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
         }
 
         int gap = design(18);
-        int minimumCardWidth = design(208);
+        int minimumCardWidth = design(360);
         gridColumns = Math.max(1, Math.min(3,
                 (contentWidth + gap) / Math.max(1, minimumCardWidth + gap)));
         while (gridColumns > 1
@@ -452,7 +447,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
         }
         gridRows = (moduleCards.size() + gridColumns - 1) / gridColumns;
         int availableHeight = Math.max(1, panelY + panelHeight - design(48) - cardsTop);
-        cardHeight = Math.max(1, Math.min(design(128), availableHeight));
+        cardHeight = Math.max(1, Math.min(design(148), availableHeight));
         visibleGridRows = Math.max(1, Math.min(gridRows,
                 (availableHeight + gap) / Math.max(1, cardHeight + gap)));
         gridScrollRow = Math.max(0, Math.min(gridScrollRow, Math.max(0, gridRows - visibleGridRows)));
@@ -653,7 +648,7 @@ public final class CarbonDemoScreen extends CarbonScreen {
                 22.0f, contentX + design(4), panelY + design(26), CarbonTheme.TEXT, false);
         CarbonText.drawUi(graphics, font,
                 activeView == View.MODULES
-                        ? "Switch features on, search, or open a card to fine-tune it."
+                        ? "Click a card to toggle it; use the gear to open settings."
                         : "Tune the selected Carbon feature. Changes save automatically.",
                 CarbonText.Weight.REGULAR, 11.0f, contentX + design(4), panelY + design(55),
                 CarbonTheme.TEXT_MUTED, false);

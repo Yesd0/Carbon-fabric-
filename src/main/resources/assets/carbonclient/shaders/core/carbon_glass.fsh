@@ -87,8 +87,10 @@ void main() {
         baseTint = vertexColor.rgb;
         baseOpacity = min(vertexColor.a, 0.55);
     } else {
+        // Clear card surfaces matter for hit targets and hierarchy; keep the SDF glass look,
+        // but lift the pale off-state opacity so cards remain distinct over the dark main pane.
         baseTint = vec3(1.0);
-        baseOpacity = 0.055;
+        baseOpacity = 0.18;
     }
 
     float grain = carbonNoise(gl_FragCoord.xy) * 0.05;

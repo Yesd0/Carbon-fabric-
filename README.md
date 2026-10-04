@@ -35,7 +35,7 @@ The distributable is `build/libs/carbonclient-1.0.0.jar`. Install it in a Minecr
 ## Part A rendering and readable fonts
 
 - `UiScale` maps the 1920×1080 reference design to Minecraft GUI coordinates and snaps to physical pixels.
-- Four static Inter weights are bundled under the SIL Open Font License. The menu now uses generated, antialiased bitmap atlases with a vanilla-font fallback rather than TTF glyph atlases, avoiding common shader/backend TTF glyph artifacts while retaining the bundled font appearance.
+- Four static Inter weights and generated bitmap atlases are bundled under the SIL Open Font License. Because custom glyph rendering was still unreliable on the target client, interactive menu labels now use Minecraft's standard font with Carbon sizing/weight styling for dependable readability; the bundled Inter provider remains available as an opt-in for later renderer verification.
 - Lucide SVG sources, ISC license, atlas-builder script, 96×96 glyph atlas, and JSON index are included.
 - Carbon's SDF shader renders rounded, translucent glass, grain, highlight, border, shadow, and ON-state cards. Rendering failures are logged and shown in red; there is no flat-fill fallback.
 - **Blur path:** Minecraft's native whole-backdrop GUI blur follows the Menu Background Blurriness option. Per-panel framebuffer sampling, quarter-scale Kawase/Gaussian capture, and resize caching are not implemented; the active path is named in the visual test screen.
@@ -43,10 +43,10 @@ The distributable is `build/libs/carbonclient-1.0.0.jar`. Install it in a Minecr
 ## Part B module menu
 
 - The centered dashboard has a high-contrast glass panel, Carbon sidebar, local username and 3D player-skin head, Modules/Settings navigation, a quick-preset box, and an active saved-profile selector with a new-profile button.
-- Minimal, Creator, and PvP presets apply to the registered features. The live module grid shows real Carbon modules only; each switch toggles its module lifecycle, the settings action opens that module's controls, and category/search/scroll/profile actions are wired to the existing managers.
+- Minimal, Creator, and PvP presets apply to the registered features. The live two-column module grid shows every registered Carbon module only; clicking a card toggles its real module lifecycle, while the gear opens that module's settings. Category/search/scroll/profile actions are wired to the existing managers.
 - The menu uses an eased open transition, staggered module-card entrances, animated hover and toggle states, an idle/mouse-tracked avatar, and a short action toast. Only populated categories are shown. No placeholder modules are added.
 - The module menu has no animated test-pattern layer; only the Part A F8 test screen draws that pattern.
 
 ## Validation status
 
-The local sandbox has no Java runtime, so Gradle cannot run locally. GitHub Actions builds the JAR with Java 25; no PC Minecraft launch, font screenshot, visual review, or Spark comparison has been completed here. After installing, verify GUI scales 1–4, resize, 1080p/1440p, bitmap-font clarity (including with your shader setup), local-skin head rendering, module toggles/presets/settings, blur rendering, and Spark FPS against the vanilla pause screen.
+The local sandbox has no Java runtime or Minecraft client. The prior test.4 was reported to show only the translucent shell and poorly arranged content; this build switches menu text to Minecraft's standard font, raises off-card glass contrast, enlarges the grid, aligns visual positions with clickable bounds, and makes the card body a module toggle. GitHub Actions compiles test.5 with Java 25; the new JAR still needs in-game verification. Please check text, card clicks/gear/settings, presets, saved profiles, skin-head rendering, GUI scales 1–4, and the F8 glass test screen.

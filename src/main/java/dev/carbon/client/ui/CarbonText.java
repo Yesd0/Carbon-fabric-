@@ -37,13 +37,24 @@ public final class CarbonText {
         if (cached != null) {
             return cached;
         }
-        Component created = Component.literal(text).withStyle(
-                Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId)));
+        // Keep interactive UI labels on Minecraft's known-good glyph provider. The bundled
+        // Inter bitmaps remain available, but are opt-in after this client's renderer is verified.
+        Style style = switch (weight) {
+            case SEMIBOLD, BOLD -> Style.EMPTY.withBold(true);
+            case REGULAR, MEDIUM -> Style.EMPTY;
+        };
+        Component created = Component.literal(text).withStyle(style);
         if (cache.size() >= CACHE_LIMIT) {
             cache.clear();
         }
         cache.put(text, created);
         return created;
+    }
+
+    /** Optional bundled Inter component for screens that have verified custom-font rendering. */
+    public static Component bundledFontComponent(String text, Weight weight) {
+        return Component.literal(text).withStyle(
+                Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId)));
     }
 
     /** Compatibility entry point used by the existing Carbon controls in GUI coordinates. */

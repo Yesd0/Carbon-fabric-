@@ -204,6 +204,7 @@ public final class CarbonComponents {
     public static final class ModuleCard extends Widget {
         private final Module module;
         private final Runnable openOptions;
+        private final Runnable afterToggle;
         private final String categoryLabel;
         private final String iconName;
         private String shortDescription;
@@ -211,10 +212,12 @@ public final class CarbonComponents {
         private long lastModuleStateNanos;
         private float enabledAmount;
 
-        public ModuleCard(int x, int y, int width, int height, Module module, Runnable openOptions) {
+        public ModuleCard(int x, int y, int width, int height, Module module,
+                          Runnable openOptions, Runnable afterToggle) {
             super(x, y, width, height, module.name());
             this.module = module;
             this.openOptions = openOptions;
+            this.afterToggle = afterToggle;
             this.categoryLabel = module.category().label().toUpperCase(java.util.Locale.ROOT);
             this.iconName = iconFor(module);
             this.shortDescription = module.description();
@@ -299,11 +302,12 @@ public final class CarbonComponents {
             CarbonGlass.drawTintedRect(graphics, knobX, knobY, knobSize, knobSize,
                     knobSize * 0.5f, 0xFFF4FFF8);
 
-            int settingsSize = design(20);
-            int settingsX = getX() + getWidth() - margin - settingsSize;
-            int settingsY = getY() + getHeight() - design(16) - settingsSize;
-            CarbonGlass.drawTintedRect(graphics, settingsX, settingsY, settingsSize, settingsSize,
-                    design(6), 0x597D9C86);
+            int settingsWidth = design(92);
+            int settingsHeight = design(26);
+            int settingsX = getX() + getWidth() - margin - settingsWidth;
+            int settingsY = getY() + getHeight() - design(16) - settingsHeight;
+            CarbonGlass.drawTintedRect(graphics, settingsX, settingsY, settingsWidth, settingsHeight,
+                    design(8), 0x8A27382D);
 
             var font = Minecraft.getInstance().font;
             int textX = getX() + design(72);
@@ -332,39 +336,43 @@ public final class CarbonComponents {
                     CarbonText.Weight.SEMIBOLD, 10.0f,
                     textX + categoryWidth + design(7) + design(8), chipY + design(3),
                     enabledAmount > 0.5f ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED, false);
-            CarbonIcons.drawGui(graphics, "settings", settingsX + (settingsSize - design(16)) / 2,
-                    settingsY + (settingsSize - design(16)) / 2, design(16), CarbonTheme.TEXT_MUTED);
+            int settingsIconSize = design(14);
+            CarbonIcons.drawGui(graphics, "settings", settingsX + design(8),
+                    settingsY + (settingsHeight - settingsIconSize) / 2,
+                    settingsIconSize, CarbonTheme.TEXT);
+            CarbonText.drawUi(graphics, font, "SETTINGS", CarbonText.Weight.MEDIUM,
+                    9.0f, settingsX + design(27), settingsY + design(7), CarbonTheme.TEXT, false);
             graphics.pose().popMatrix();
         }
 
         @Override
         public void onPress(InputWithModifiers input) {
-            module.toggle();
+            toggleModule();
         }
 
         @Override
         public void onClick(MouseButtonEvent event, boolean doubleClick) {
             if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) {
-                super.onClick(event, doubleClick);
                 return;
             }
             setFocused(true);
             playDownSound(Minecraft.getInstance().getSoundManager());
             double relativeX = event.x() - getX();
             double relativeY = event.y() - getY();
-            int toggleLeft = getWidth() - design(16) - design(40);
-            int toggleTop = design(16);
-            int settingsLeft = getWidth() - design(16) - design(20);
-            int settingsTop = getHeight() - design(16) - design(20);
-            if (relativeY >= toggleTop && relativeY <= toggleTop + design(22)
-                    && relativeX >= toggleLeft && relativeX <= toggleLeft + design(40)) {
-                module.toggle();
-            } else if (relativeY >= settingsTop && relativeY <= settingsTop + design(20)
-                    && relativeX >= settingsLeft && relativeX <= settingsLeft + design(20)) {
+            int settingsLeft = getWidth() - design(16) - design(92);
+            int settingsTop = getHeight() - design(16) - design(26);
+            if (relativeY >= settingsTop && relativeY <= settingsTop + design(26)
+                    && relativeX >= settingsLeft && relativeX <= settingsLeft + design(92)) {
                 openOptions.run();
             } else {
-                openOptions.run();
+                // The entire card is a forgiving on/off target; only the gear opens settings.
+                toggleModule();
             }
+        }
+
+        private void toggleModule() {
+            module.toggle();
+            afterToggle.run();
         }
 
         private static String iconFor(Module module) {
