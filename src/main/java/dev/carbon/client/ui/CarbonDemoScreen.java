@@ -21,9 +21,9 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.RenderTypes;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
-import net.minecraft.world.entity.player.Player;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -164,13 +164,14 @@ public final class CarbonDemoScreen extends CarbonScreen {
         username = client.getUser() == null ? "Player" : client.getUser().getName();
         skinTexture = null;
         headModel = null;
-        Player player = client.player;
+        var player = client.player;
         if (player == null) {
             return;
         }
         try {
             skinTexture = player.getSkin().body().texturePath();
-            headModel = new Model.Simple(client.getEntityModels().bakeLayer(ModelLayers.PLAYER_HEAD));
+            headModel = new Model.Simple(client.getEntityModels().bakeLayer(ModelLayers.PLAYER_HEAD),
+                    RenderTypes::entityCutout);
         } catch (RuntimeException failure) {
             LOGGER.warn("Could not prepare the local player's skin head for the Carbon menu", failure);
         }
@@ -782,7 +783,8 @@ public final class CarbonDemoScreen extends CarbonScreen {
         if (toastMessage.isBlank() || System.nanoTime() > toastUntilNanos) {
             return;
         }
-        int toastWidth = Math.max(design(180), CarbonText.widthDesign(font, toastMessage, CarbonText.Weight.REGULAR, 9) + design(34));
+        int toastWidth = Math.max(design(180), Math.round(
+                CarbonText.widthDesign(font, toastMessage, CarbonText.Weight.REGULAR, 9)) + design(34));
         Rect toast = new Rect(panelRect.x() + (panelRect.width() - toastWidth) / 2,
                 panelRect.bottom() - design(52), toastWidth, design(32));
         drawSurface(graphics, toast, Surface.TOAST, false);
