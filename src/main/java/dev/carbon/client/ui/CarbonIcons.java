@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-/** Loads and draws Carbon's bundled Lucide atlas using Minecraft's GUI texture pipeline. */
+/** Loads Carbon's 24-file Lucide atlas and draws it through the mipmapped GUI texture pipeline. */
 public final class CarbonIcons {
     private static final Logger LOGGER = LoggerFactory.getLogger("Carbon Client");
     private static final Identifier ATLAS = Identifier.fromNamespaceAndPath(
@@ -24,10 +24,11 @@ public final class CarbonIcons {
     private static final Identifier INDEX = Identifier.fromNamespaceAndPath(
             "carbonclient", "textures/gui/icons.json");
     private static final Set<String> REQUIRED = Set.of(
-            "layout-grid", "layout-dashboard", "user", "settings", "search", "x", "keyboard",
-            "mouse-pointer-click", "gauge", "zoom-in", "shield", "flask-conical", "eye", "map-pin",
-            "crosshair", "blend", "sliders-horizontal");
-    private static final Map<String, IconRect> ICONS = new HashMap<>(24);
+            "layout-grid", "list", "arrow-up-down", "search", "x", "pencil", "sliders-horizontal",
+            "settings", "star", "plus", "trash", "copy", "keyboard", "mouse-pointer-click", "gauge",
+            "zoom-in", "shield", "flask-conical", "eye", "map-pin", "crosshair", "blend", "user",
+            "layout-dashboard");
+    private static final Map<String, IconRect> ICONS = new HashMap<>(32);
 
     private static int atlasWidth;
     private static int atlasHeight;
@@ -57,20 +58,26 @@ public final class CarbonIcons {
             }
             for (String required : REQUIRED) {
                 if (!ICONS.containsKey(required)) {
-                    LOGGER.error("Carbon icon atlas index is missing icon '{}'; text labels remain available", required);
+                    LOGGER.error("Carbon icon index is missing required Lucide file '{}'; no glyph substitute will be drawn",
+                            required);
                     return;
                 }
             }
             loaded = atlasWidth > 0 && atlasHeight > 0;
             if (!loaded) {
-                LOGGER.error("Carbon icon atlas index has invalid dimensions; text labels remain available");
+                LOGGER.error("Carbon Lucide icon index has invalid dimensions; Carbon icons are unavailable");
             }
         } catch (IOException | RuntimeException failure) {
-            LOGGER.error("Carbon icon atlas could not be loaded; text labels remain available", failure);
+            LOGGER.error("Carbon Lucide icon atlas could not be loaded", failure);
         }
     }
 
-    /** Draws an atlas entry at a pixel-snapped design-pixel position and size. */
+    public static boolean isLoaded() {
+        load();
+        return loaded;
+    }
+
+    /** Draws an atlas entry at a whole-physical-pixel design-pixel position and size. */
     public static void drawDesign(GuiGraphicsExtractor graphics, String name, float x, float y,
                                   float size, int tint) {
         load();
@@ -79,7 +86,8 @@ public final class CarbonIcons {
         }
         IconRect icon = ICONS.get(name);
         if (icon == null) {
-            LOGGER.warn("Carbon icon atlas does not contain icon '{}'; text fallback will be used", name);
+            LOGGER.error("Carbon icon atlas does not contain Lucide icon '{}'; no glyph substitute will be drawn",
+                    name);
             return;
         }
         float snappedX = UiScale.snap(x);
@@ -105,7 +113,8 @@ public final class CarbonIcons {
         }
         IconRect icon = ICONS.get(name);
         if (icon == null) {
-            LOGGER.warn("Carbon icon atlas does not contain icon '{}'; text fallback will be used", name);
+            LOGGER.error("Carbon icon atlas does not contain Lucide icon '{}'; no glyph substitute will be drawn",
+                    name);
             return;
         }
         int targetSize = Math.max(1, size);

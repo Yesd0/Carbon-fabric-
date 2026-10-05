@@ -1,46 +1,40 @@
 # Carbon Client
 
-Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. It provides a larger, rounded Carbon-branded module menu, an in-game HUD layout editor, and a small registry of client-side HUD and visual modules. Feather and Lunar are high-level interaction references only; Carbon does not use their branding or assets.
+Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. This branch is being transformed in gated parts; **Part 1 currently installs Carbon's visual foundation and style-test screen only**. The full Mods, Settings, Waypoints, Profiles, and HUD-editor workflows are not part of this stage.
 
 ## Toolchain
 
-- Minecraft `26.2`
+- Minecraft `26.2` (unobfuscated)
 - Java `25`
-- Fabric Loader `0.19.5+`
+- Fabric Loader `0.19.1+`
 - Fabric API `0.161.0+26.2`
 - Fabric Loom `1.18-SNAPSHOT`
 - Gradle wrapper `9.8.0`
 
-Minecraft 26.x is unobfuscated, so this project intentionally has no mappings dependency. It uses Loom's `net.fabricmc.fabric-loom` plugin ID and `implementation` dependencies.
-
-## Build and controls
-
-With a Java 25 JDK installed, run:
+No third-party UI library is used. With a Java 25 JDK installed, build with:
 
 ```sh
 ./gradlew build --no-daemon
 ```
 
-The distributable is `build/libs/carbonclient-1.0.0.jar`. Install it in a Minecraft 26.2 PC profile with Fabric Loader and Fabric API.
+To test in Minecraft:
 
-The Carbon menu key is registered in Minecraft's normal **Options → Controls → Key Binds → Carbon Client** category. It defaults to **Right Shift** and can be changed there. The menu does not use a hard-coded keyboard hook for opening.
+```sh
+./gradlew runClient
+```
 
-## Menu
+The Carbon style test is registered in vanilla **Options → Controls → Key Binds → Carbon Client** and defaults to **Right Shift**. Press **F6** while it is open to toggle measured layout bounds and design-pixel sizes. The screen is non-pausing; the game world continues behind a 45% matte dimmer and radial vignette.
 
-The larger menu uses opaque grayscale panels over the live, unpaused world. Solid rounded surfaces have shader-antialiased edges; there is no full-screen cover, glass treatment, or blur. The local username is paired with a vanilla-rendered 3D `PLAYER_HEAD` carrying the current player profile, without a square portrait border. It also includes:
+## Part 1 rendering and assets
 
-- Live module categories and search across module names, descriptions, and IDs.
-- Module cards that toggle the real module when clicked; enabled state is informational, not a separate ON/OFF control.
-- A settings gear on every module card that opens that module's actual typed settings.
-- Working Essentials, PvP, and Creator presets that update the registered starter modules.
-- An in-game HUD editor: drag widgets to move them, drag the corner or use scale controls to resize them, preview disabled widgets, and reset placement/size. The world remains visible while editing.
-- Persistent UI scale and bundled Inter regular/medium/semibold/bold faces, with a one-click Minecraft-font fallback and vanilla glyph references for unsupported characters.
-- Saved configuration profiles backed by Carbon's existing config manager.
+- Layout values stay in 1920×1080 design pixels. `UiScale` applies `clamp(min(fbWidth/1920, fbHeight/1080), 0.6, 1.6)`, converts through Minecraft's GUI scale, and snaps positions and sizes to whole framebuffer pixels.
+- Carbon uses matte dark gradients, 96% window opacity, subtle white borders and top highlights, layered shadows, a green accent, and restrained monochrome shader noise. Native background blur is off; there is no glass/frosted blur.
+- Rounded surfaces use the custom SDF shader for coverage, gradients and radial vignette; borders, bevels, shadows, and optional green glow are composed from SDF shapes. If registration or source validation fails, Carbon logs an ERROR with the cause and shows a red `Carbon render failed: <reason>` message instead of substituting flat rectangles.
+- Text uses bundled Inter TTF providers in regular, medium, semibold, and bold weights, with 4× oversampling and the SIL Open Font License. Tracked uppercase text layouts are cached.
+- The icon atlas is built from real Lucide SVG files in `tools/icons-src/`, packed by `tools/build_icons.py`, mipmapped and linearly sampled. It contains 24 icons and includes the Lucide license notice. Current Lucide renamed the requested `trash-2` asset to `trash`; Carbon uses the official `trash.svg` file for that entry.
 
-The retained starter modules are FPS, CPS, Keystrokes, and Zoom. Module values, keybinds, enabled state, HUD positions, HUD scale, and profiles are stored locally under `.minecraft/config/carbonclient/`; HUD placement/scale are normal typed module settings and are included in profiles. Menu scale and font preference are stored in `menu.json`; Minecraft stores the menu-opening key with its normal options. The mod makes no network calls.
+The style-test screen includes a 1000×612 design-pixel window, profile/sidebar and header samples, filters/search/view/sort controls, four module-card examples, matte buttons, a live demo toggle, delayed tooltip, and the F6 layout-debug overlay. Its cards and sample controls demonstrate appearance; they do not edit real modules or persist profile state. The retained ModuleManager, settings, config, event, and HUD systems remain available for the later gated parts. The old menu and HUD-editor visuals have been removed rather than left active beside the new style test.
 
-## Bundled assets and validation
+## Verification
 
-Bundled Inter font resources and licenses, the Lucide icon atlas, and a small solid rounded-rectangle shader remain in the project. The shader only computes antialiased coverage for opaque grayscale fills; it does not sample or blur the world. Carbon's glass shader, blur helpers, F8 test screen, and F7 layout-debug path have been removed.
-
-The GitHub Actions workflow builds the next immutable test release as `v1.0.0-test.10` with Java 25. CI verifies compilation and packaging, not in-game behavior. The sandbox has no Minecraft runtime, so the 3D portrait, HUD editor interactions, live gameplay backdrop, keybind screen, settings, profiles, and low-resolution layout still need hands-on visual/runtime verification in Minecraft.
+`./gradlew build --no-daemon` checks Java compilation and packaging; it is not visual/runtime verification. Please verify in a Java 25 Minecraft 26.2 Fabric profile at GUI Scale 1–4, resize the window, compare 1080p and 1440p, and use Spark to compare FPS with the screen open/closed. In-game shader appearance and that performance comparison have not been verified in this sandbox.

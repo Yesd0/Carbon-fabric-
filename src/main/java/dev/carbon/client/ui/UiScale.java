@@ -1,10 +1,10 @@
 package dev.carbon.client.ui;
 
-import net.minecraft.client.Minecraft;
 import com.mojang.blaze3d.platform.Window;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 
-/** Converts the 1920x1080 design canvas to Minecraft's current GUI coordinates. */
+/** Keeps Carbon layout in 1920x1080 design pixels and converts only at the renderer boundary. */
 public final class UiScale {
     public static final float DESIGN_WIDTH = 1920.0f;
     public static final float DESIGN_HEIGHT = 1080.0f;
@@ -13,61 +13,52 @@ public final class UiScale {
 
     private static int framebufferWidth = 1920;
     private static int framebufferHeight = 1080;
-    private static int guiScale = 1;
+    private static float guiScale = 1.0f;
     private static float uiScale = 1.0f;
     private static float rendererScale = 1.0f;
     private static float designWidth = DESIGN_WIDTH;
     private static float designHeight = DESIGN_HEIGHT;
-    private static float userScaleMultiplier = 1.0f;
-    private static float cachedUserScaleMultiplier = Float.NaN;
     private static boolean initialized;
 
     private UiScale() {
     }
 
-    /** Refreshes cached dimensions and user scale. Returns true whenever a derived scale input changed. */
+    /**
+     * Refresh cached framebuffer metrics. The UI scale is deliberately resolution-only:
+     * clamp(min(fbWidth / 1920, fbHeight / 1080), 0.6, 1.6).
+     */
     public static boolean update(Minecraft minecraft) {
         Window window = minecraft.getWindow();
-        int nextGuiScale = Math.max(1, window.getGuiScale());
-        // Gui-scaled extents are derived from the framebuffer and are exposed consistently in 26.2.
-        int nextFramebufferWidth = Math.max(1, window.getGuiScaledWidth() * nextGuiScale);
-        int nextFramebufferHeight = Math.max(1, window.getGuiScaledHeight() * nextGuiScale);
-        boolean changed = nextFramebufferWidth != framebufferWidth
+        int nextFramebufferWidth = Math.max(1, window.getWidth());
+        int nextFramebufferHeight = Math.max(1, window.getHeight());
+        float nextGuiScale = Math.max(1.0f, (float) window.getGuiScale());
+        boolean changed = !initialized
+                || nextFramebufferWidth != framebufferWidth
                 || nextFramebufferHeight != framebufferHeight
-                || nextGuiScale != guiScale
-                || Float.compare(userScaleMultiplier, cachedUserScaleMultiplier) != 0;
-
-        if (!initialized || changed) {
-            framebufferWidth = nextFramebufferWidth;
-            framebufferHeight = nextFramebufferHeight;
-            guiScale = nextGuiScale;
-            float resolutionScale = Math.min(framebufferWidth / DESIGN_WIDTH,
-                    framebufferHeight / DESIGN_HEIGHT);
-            uiScale = clamp(resolutionScale * userScaleMultiplier, MIN_SCALE, MAX_SCALE);
-            rendererScale = uiScale / guiScale;
-            cachedUserScaleMultiplier = userScaleMultiplier;
-            designWidth = framebufferWidth / uiScale;
-            designHeight = framebufferHeight / uiScale;
-            initialized = true;
+                || Float.compare(nextGuiScale, guiScale) != 0;
+        if (!changed) {
+            return false;
         }
-        return changed;
+
+        framebufferWidth = nextFramebufferWidth;
+        framebufferHeight = nextFramebufferHeight;
+        guiScale = nextGuiScale;
+        float resolutionScale = Math.min(framebufferWidth / DESIGN_WIDTH,
+                framebufferHeight / DESIGN_HEIGHT);
+        uiScale = clamp(resolutionScale, MIN_SCALE, MAX_SCALE);
+        rendererScale = uiScale / guiScale;
+        designWidth = framebufferWidth / uiScale;
+        designHeight = framebufferHeight / uiScale;
+        initialized = true;
+        return true;
     }
 
     public static float uiScale() {
         return uiScale;
     }
 
-    public static int guiScale() {
+    public static float guiScale() {
         return guiScale;
-    }
-
-    public static float userScaleMultiplier() {
-        return userScaleMultiplier;
-    }
-
-    /** Applies a persistent menu preference; refreshes derived layout on the next update. */
-    public static void setUserScaleMultiplier(float multiplier) {
-        userScaleMultiplier = clamp(multiplier, 0.75f, 1.50f);
     }
 
     public static int framebufferWidth() {
@@ -90,30 +81,31 @@ public final class UiScale {
         return designHeight;
     }
 
-    /** Converts design-pixel coordinates into the current renderer's coordinate space. */
+    /** Converts a design-pixel coordinate into Minecraft GUI renderer coordinates. */
     public static float toRenderer(float designPx) {
         return designPx * rendererScale;
     }
 
-    /** Converts a mouse coordinate from Minecraft GUI space back to design pixels. */
+    /** Converts an input coordinate from Minecraft GUI space back to design pixels. */
     public static float toDesign(float guiCoordinate) {
         return guiCoordinate / rendererScale;
     }
 
-    /** Snaps a design coordinate or size to a whole framebuffer pixel. */
+    /** Snaps a design coordinate or size to a whole physical framebuffer pixel. */
     public static float snap(float designPx) {
         return Math.round(designPx * uiScale) / uiScale;
     }
 
-    /** Snaps an ordinary Minecraft GUI coordinate to a whole framebuffer pixel. */
+    /** Snaps an ordinary Minecraft GUI coordinate to a whole physical framebuffer pixel. */
     public static float snapGui(float guiPx) {
-        return Math.round(guiPx * guiScale) / (float) guiScale;
+        return Math.round(guiPx * guiScale) / guiScale;
     }
 
     public static int framebufferPixels(float designPx) {
         return Math.round(designPx * uiScale);
     }
 
+    /** Apply once around a Carbon design-pixel draw pass; layout values remain unscaled. */
     public static void pushRendererScale(GuiGraphicsExtractor graphics) {
         graphics.pose().pushMatrix();
         graphics.pose().scale(rendererScale, rendererScale);

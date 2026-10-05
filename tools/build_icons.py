@@ -26,11 +26,17 @@ LICENSE_PATH = ROOT / "src/main/resources/META-INF/licenses/Lucide-ISC-and-Feath
 PREVIEW_DIR = ROOT / "build/carbon-icons"
 ICON_NAMES = (
     "layout-grid",
-    "layout-dashboard",
-    "user",
-    "settings",
+    "list",
+    "arrow-up-down",
     "search",
     "x",
+    "pencil",
+    "sliders-horizontal",
+    "settings",
+    "star",
+    "plus",
+    "trash",
+    "copy",
     "keyboard",
     "mouse-pointer-click",
     "gauge",
@@ -41,7 +47,8 @@ ICON_NAMES = (
     "map-pin",
     "crosshair",
     "blend",
-    "sliders-horizontal",
+    "user",
+    "layout-dashboard",
 )
 ICON_SIZE = 96
 CELL_SIZE = 112

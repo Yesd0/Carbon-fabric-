@@ -2,11 +2,11 @@
   "version": 1,
   "atlas": "carbonclient:textures/gui/icons.png",
   "width": 672,
-  "height": 336,
+  "height": 448,
   "iconSize": 96,
   "cellSize": 112,
   "columns": 6,
-  "rows": 3,
+  "rows": 4,
   "icons": {
     "layout-grid": {
       "x": 8,
@@ -14,99 +14,141 @@
       "width": 96,
       "height": 96
     },
-    "layout-dashboard": {
+    "list": {
       "x": 120,
       "y": 8,
       "width": 96,
       "height": 96
     },
-    "user": {
+    "arrow-up-down": {
       "x": 232,
-      "y": 8,
-      "width": 96,
-      "height": 96
-    },
-    "settings": {
-      "x": 344,
       "y": 8,
       "width": 96,
       "height": 96
     },
     "search": {
-      "x": 456,
+      "x": 344,
       "y": 8,
       "width": 96,
       "height": 96
     },
     "x": {
+      "x": 456,
+      "y": 8,
+      "width": 96,
+      "height": 96
+    },
+    "pencil": {
       "x": 568,
       "y": 8,
       "width": 96,
       "height": 96
     },
-    "keyboard": {
+    "sliders-horizontal": {
       "x": 8,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "mouse-pointer-click": {
+    "settings": {
       "x": 120,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "gauge": {
+    "star": {
       "x": 232,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "zoom-in": {
+    "plus": {
       "x": 344,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "shield": {
+    "trash": {
       "x": 456,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "flask-conical": {
+    "copy": {
       "x": 568,
       "y": 120,
       "width": 96,
       "height": 96
     },
-    "eye": {
+    "keyboard": {
       "x": 8,
       "y": 232,
       "width": 96,
       "height": 96
     },
-    "map-pin": {
+    "mouse-pointer-click": {
       "x": 120,
       "y": 232,
       "width": 96,
       "height": 96
     },
-    "crosshair": {
+    "gauge": {
       "x": 232,
       "y": 232,
       "width": 96,
       "height": 96
     },
-    "blend": {
+    "zoom-in": {
       "x": 344,
       "y": 232,
       "width": 96,
       "height": 96
     },
-    "sliders-horizontal": {
+    "shield": {
       "x": 456,
       "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "flask-conical": {
+      "x": 568,
+      "y": 232,
+      "width": 96,
+      "height": 96
+    },
+    "eye": {
+      "x": 8,
+      "y": 344,
+      "width": 96,
+      "height": 96
+    },
+    "map-pin": {
+      "x": 120,
+      "y": 344,
+      "width": 96,
+      "height": 96
+    },
+    "crosshair": {
+      "x": 232,
+      "y": 344,
+      "width": 96,
+      "height": 96
+    },
+    "blend": {
+      "x": 344,
+      "y": 344,
+      "width": 96,
+      "height": 96
+    },
+    "user": {
+      "x": 456,
+      "y": 344,
+      "width": 96,
+      "height": 96
+    },
+    "layout-dashboard": {
+      "x": 568,
+      "y": 344,
       "width": 96,
       "height": 96
     }
