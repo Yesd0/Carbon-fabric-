@@ -87,8 +87,8 @@ public final class UiScale {
     }
 
     /** Converts an input coordinate from Minecraft GUI space back to design pixels. */
-    public static float toDesign(float guiCoordinate) {
-        return guiCoordinate / rendererScale;
+    public static float toDesign(double guiCoordinate) {
+        return (float) (guiCoordinate / rendererScale);
     }
 
     /** Snaps a design coordinate or size to a whole physical framebuffer pixel. */
