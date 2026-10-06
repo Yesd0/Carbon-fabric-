@@ -8,12 +8,15 @@ import net.minecraft.network.chat.Style;
 import net.minecraft.resources.Identifier;
 
 import java.util.EnumMap;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /** Bundled Inter TTF text helpers with cached components and per-codepoint tracked layouts. */
 public final class CarbonText {
     public static final float FONT_BASE_SIZE = 16.0f;
+    private static final float TEXT_SIZE_BOOST = 1.18f;
+    private static final int COMPONENT_CACHE_LIMIT = 768;
+    private static final int TRACKED_CACHE_LIMIT = 384;
 
     private static final Map<Weight, Map<String, Component>> COMPONENTS = new EnumMap<>(Weight.class);
     private static final Map<Weight, EnumMap<Tracking, Map<String, TrackedLayout>>> TRACKED_LAYOUTS =
@@ -21,10 +24,10 @@ public final class CarbonText {
 
     static {
         for (Weight weight : Weight.values()) {
-            COMPONENTS.put(weight, new HashMap<>(128));
+            COMPONENTS.put(weight, boundedCache(COMPONENT_CACHE_LIMIT));
             EnumMap<Tracking, Map<String, TrackedLayout>> layouts = new EnumMap<>(Tracking.class);
             for (Tracking tracking : Tracking.values()) {
-                layouts.put(tracking, new HashMap<>(64));
+                layouts.put(tracking, boundedCache(TRACKED_CACHE_LIMIT));
             }
             TRACKED_LAYOUTS.put(weight, layouts);
         }
@@ -54,10 +57,13 @@ public final class CarbonText {
                             float designSize, float x, float y, int color, boolean shadow) {
         float scale = snappedTextScale(designSize);
         graphics.pose().pushMatrix();
-        graphics.pose().translate(UiScale.snap(x), UiScale.snap(y));
-        graphics.pose().scale(scale, scale);
-        graphics.text(font, component(text, weight), 0, 0, color, shadow);
-        graphics.pose().popMatrix();
+        try {
+            graphics.pose().translate(UiScale.snap(x), UiScale.snap(y));
+            graphics.pose().scale(scale, scale);
+            graphics.text(font, component(text, weight), 0, 0, color, shadow);
+        } finally {
+            graphics.pose().popMatrix();
+        }
     }
 
     public static void centered(GuiGraphicsExtractor graphics, Font font, String text, Weight weight,
@@ -81,12 +87,15 @@ public final class CarbonText {
         TrackedLayout layout = trackedLayout(font, text, weight, tracking);
         float scale = snappedTextScale(designSize);
         graphics.pose().pushMatrix();
-        graphics.pose().translate(UiScale.snap(x), UiScale.snap(y));
-        graphics.pose().scale(scale, scale);
-        for (int index = 0; index < layout.glyphs.length; index++) {
-            graphics.text(font, layout.glyphs[index], Math.round(layout.offsets[index]), 0, color, false);
+        try {
+            graphics.pose().translate(UiScale.snap(x), UiScale.snap(y));
+            graphics.pose().scale(scale, scale);
+            for (int index = 0; index < layout.glyphs.length; index++) {
+                graphics.text(font, layout.glyphs[index], Math.round(layout.offsets[index]), 0, color, false);
+            }
+        } finally {
+            graphics.pose().popMatrix();
         }
-        graphics.pose().popMatrix();
     }
 
     public static void centeredTracked(GuiGraphicsExtractor graphics, Font font, String text, Weight weight,
@@ -130,14 +139,28 @@ public final class CarbonText {
         return created;
     }
 
-    /** Size snapping is in physical pixels; renderer/UI-scale conversion is applied by UiScale. */
+    /**
+     * Snap the final Inter size in physical pixels before converting it to Minecraft's 16px
+     * provider space. The small optical boost compensates for Inter's lower apparent x-height
+     * beside vanilla UI text, while the 7px floor keeps labels readable at the minimum UI scale.
+     */
     private static float snappedTextScale(float designSize) {
-        float scale = Math.max(0.0f, UiScale.uiScale());
-        if (scale == 0.0f) {
-            return designSize / FONT_BASE_SIZE;
+        if (designSize <= 0.0f) {
+            return 0.0f;
         }
-        float physicalSize = Math.max(1.0f, Math.round(designSize * scale));
-        return physicalSize / (FONT_BASE_SIZE * scale);
+        float uiScale = Math.max(0.001f, UiScale.uiScale());
+        float physicalSize = Math.max(7.0f,
+                Math.round(designSize * TEXT_SIZE_BOOST * uiScale));
+        return physicalSize / (FONT_BASE_SIZE * uiScale);
+    }
+
+    private static <V> Map<String, V> boundedCache(int maximumSize) {
+        return new LinkedHashMap<>(128, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<String, V> eldest) {
+                return size() > maximumSize;
+            }
+        };
     }
 
     private record TrackedLayout(Component[] glyphs, float[] offsets, float width) {

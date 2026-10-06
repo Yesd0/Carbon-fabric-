@@ -43,10 +43,10 @@ public final class CarbonTheme {
     public static final int ACCENT_GLOW = 0x381FC76F;
     public static final int ACCENT_SOFT = 0x251FC76F;
 
-    public static final int TEXT = 0xEBF4F6F3;
-    public static final int TEXT_MUTED = 0xB3CDD1CE;
-    public static final int TEXT_DIM = 0x80AEB4B0;
-    public static final int TEXT_DISABLED = 0x5C9AA19D;
+    public static final int TEXT = 0xFFF4F6F3;
+    public static final int TEXT_MUTED = 0xD6CDD1CE;
+    public static final int TEXT_DIM = 0xA7AEB4B0;
+    public static final int TEXT_DISABLED = 0x829AA19D;
     public static final int RED = 0xFFFF5968;
     public static final int RED_SOFT = 0x24FF5968;
 

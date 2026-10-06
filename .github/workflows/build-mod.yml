@@ -96,14 +96,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="v1.0.0-test.11"
+          tag="v1.0.0-test.12"
           if gh release view "$tag" >/dev/null 2>&1; then
             echo "Refusing to overwrite existing release $tag" >&2
             exit 1
           fi
           gh release create "$tag" build/libs/carbonclient-1.0.0.jar \
-            --title "Carbon Client 1.0.0 Part 1 UI Foundation" \
-            --notes "Part 1 UI foundation for Minecraft 26.2 PC, compiled with Java 25. Requires Fabric Loader 0.19.1 or newer and Fabric API 0.161.0+26.2 or newer. Right Shift opens the non-pausing Carbon Style Test; F6 toggles the measured layout-debug overlay. The 1000x612 design-pixel sample uses matte dark SDF surfaces, a green accent, a 45% world dimmer, and a radial vignette; native blur is off and there is no glass/frosted treatment. Four bundled Inter TTF weights use 4x oversampling and the SIL Open Font License. The 24-icon Lucide atlas is built from real SVG files; upstream no longer supplies trash-2.svg, so the atlas uses the official trash.svg file. The screen's cards and controls are style samples and do not edit real modules or persist profile state. Carbon's ModuleManager, settings, config, event, and HUD infrastructure remains available for later gated parts; the full Mods, Settings, Waypoints, Profiles, and HUD-editor workflows are not included here. The JAR is CI-built; in-game rendering and Spark performance comparisons still require hands-on verification. This release is immutable: the workflow refuses to replace an existing test.11 release." \
+            --title "Carbon Client 1.0.0 Part 2 Mods Menu" \
+            --notes "Part 2 Carbon Mods menu for Minecraft 26.2 PC, compiled with Java 25. Requires Fabric Loader 0.19.1 or newer and Fabric API 0.161.0+26.2 or newer. Right Shift opens the non-pausing Carbon menu; F6 toggles layout bounds. The menu connects to Carbon's live starter modules and typed settings, with module filters, search, sorting, grid/list views, pins, delayed tooltips, keyboard controls, and a live module-settings popover. Existing profiles can be switched and new profiles created. Filter, view, sort, search, and pinned-module state persist locally in config/carbonclient/ui.json; module state continues to use Carbon's profile/config system. Inter text sizing and contrast were increased in response to the reported unreadable/glitched menu text; in-game visual confirmation is still required. The 1000x612 Carbon surfaces remain matte SDF with a green accent; native blur is off and there is no glass/frosted treatment. Four bundled Inter TTF weights use 4x oversampling and the SIL Open Font License. The Lucide atlas is built from real SVG files; upstream no longer supplies trash-2.svg, so the atlas uses the official trash.svg file. Full Settings, Waypoints, and HUD-editor workflows remain gated for later parts. The JAR is CI-built; in-game rendering and Spark performance comparisons still need hands-on verification. This release is immutable: the workflow refuses to replace an existing test.12 release." \
             --prerelease --target "$GITHUB_REF_NAME"
 
       - name: Upload mod JAR
