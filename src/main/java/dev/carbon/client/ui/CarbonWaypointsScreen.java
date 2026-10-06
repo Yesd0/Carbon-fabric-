@@ -257,7 +257,7 @@ public final class CarbonWaypointsScreen extends CarbonScreen {
         drawTab(graphics, settingsTab, "SETTINGS", CarbonTheme.TEXT_MUTED);
         CarbonIcons.drawDesign(graphics, "x", closeButton.x + 9.0f, closeButton.y + 9.0f,
                 16.0f, CarbonTheme.TEXT_MUTED);
-        CarbonText.drawTracked(graphics, "WAYPOINTS", CarbonText.Weight.BOLD, 14.0f,
+        CarbonText.drawTracked(graphics, font, "WAYPOINTS", CarbonText.Weight.BOLD, 14.0f,
                 panel.x + 232.0f, panel.y + 75.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
         CarbonIcons.drawDesign(graphics, "search", searchBox.x + 10.0f, searchBox.y + 9.0f,
                 16.0f, searchFocused ? CarbonTheme.ACCENT : CarbonTheme.TEXT_MUTED);
@@ -278,7 +278,7 @@ public final class CarbonWaypointsScreen extends CarbonScreen {
                 CarbonText.Tracking.LABEL);
         CarbonIcons.drawDesign(graphics, "plus", addButton.x + 10.0f, addButton.y + 9.0f,
                 16.0f, CarbonTheme.TEXT);
-        CarbonText.drawTracked(graphics, "ADD HERE", CarbonText.Weight.SEMIBOLD, 8.0f,
+        CarbonText.drawTracked(graphics, font, "ADD HERE", CarbonText.Weight.SEMIBOLD, 8.0f,
                 addButton.x + 34.0f, addButton.y + 13.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
 
         int count = Math.min(MAX_ROWS, Math.max(0, visible.size() - scroll));
@@ -314,7 +314,7 @@ public final class CarbonWaypointsScreen extends CarbonScreen {
                 CarbonText.Weight.MEDIUM, 9.0f, panel.x + 232.0f, panel.y + PANEL_HEIGHT - 24.0f,
                 CarbonTheme.TEXT_MUTED, false);
         if (createDialog) {
-            CarbonText.drawTracked(graphics, "ADD WAYPOINT", CarbonText.Weight.BOLD, 12.0f,
+            CarbonText.drawTracked(graphics, font, "ADD WAYPOINT", CarbonText.Weight.BOLD, 12.0f,
                     modal.x + 24.0f, modal.y + 22.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
             CarbonText.draw(graphics, font, "Saved at your current block position and dimension.",
                     CarbonText.Weight.REGULAR, 9.0f, modal.x + 24.0f, modal.y + 48.0f,
@@ -330,7 +330,7 @@ public final class CarbonWaypointsScreen extends CarbonScreen {
             drawModalButtonLabel(graphics, confirmButton, "SAVE", CarbonTheme.TEXT);
         }
         if (deleteDialog) {
-            CarbonText.drawTracked(graphics, "DELETE WAYPOINT?", CarbonText.Weight.BOLD, 12.0f,
+            CarbonText.drawTracked(graphics, font, "DELETE WAYPOINT?", CarbonText.Weight.BOLD, 12.0f,
                     modal.x + 24.0f, modal.y + 34.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
             CarbonText.draw(graphics, font, "This only removes the local marker.",
                     CarbonText.Weight.REGULAR, 10.0f, modal.x + 24.0f, modal.y + 70.0f,

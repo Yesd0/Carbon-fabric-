@@ -84,7 +84,7 @@ public final class WaypointManager implements AutoCloseable {
             return null;
         }
         BlockPos position = player.blockPosition();
-        String dimension = player.level().dimension().location().toString();
+        String dimension = player.level().dimension().identifier().toString();
         Waypoint waypoint = new Waypoint(UUID.randomUUID().toString(), name, dimension,
                 position.getX(), position.getY(), position.getZ());
         waypoints.add(waypoint);
@@ -108,7 +108,7 @@ public final class WaypointManager implements AutoCloseable {
         if (client.player == null || client.level == null) {
             return "";
         }
-        return client.player.level().dimension().location().toString();
+        return client.player.level().dimension().identifier().toString();
     }
 
     private void load() {
@@ -206,7 +206,7 @@ public final class WaypointManager implements AutoCloseable {
         if (player == null || client.level == null || client.gui.screen() != null) {
             return;
         }
-        String dimension = player.level().dimension().location().toString();
+        String dimension = player.level().dimension().identifier().toString();
         for (int index = 0; index < MAX_HUD_ROWS; index++) {
             nearest[index] = null;
             nearestDistances[index] = Double.POSITIVE_INFINITY;

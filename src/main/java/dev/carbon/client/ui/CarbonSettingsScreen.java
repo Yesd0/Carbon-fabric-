@@ -205,17 +205,17 @@ public final class CarbonSettingsScreen extends CarbonScreen {
                 blurRow.x + blurRow.width - 92.0f, blurRow.y + 22.0f, CarbonTheme.TEXT, false);
         CarbonIcons.drawDesign(graphics, "trash", resetButton.x + 12.0f, resetButton.y + 10.0f,
                 16.0f, CarbonTheme.TEXT);
-        CarbonText.drawTracked(graphics, "RESET UI STATE", CarbonText.Weight.SEMIBOLD, 9.0f,
+        CarbonText.drawTracked(graphics, font, "RESET UI STATE", CarbonText.Weight.SEMIBOLD, 9.0f,
                 resetButton.x + 38.0f, resetButton.y + 12.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
         if (confirmReset) {
-            CarbonText.drawTracked(graphics, "RESET CARBON UI?", CarbonText.Weight.BOLD, 12.0f,
+            CarbonText.drawTracked(graphics, font, "RESET CARBON UI?", CarbonText.Weight.BOLD, 12.0f,
                     panel.x + 346.0f, panel.y + 254.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
             CarbonText.draw(graphics, font, "This clears filters, pins, search, and view preferences.",
                     CarbonText.Weight.REGULAR, 10.0f, panel.x + 346.0f, panel.y + 284.0f,
                     CarbonTheme.TEXT_MUTED, false);
-            CarbonText.drawTracked(graphics, "RESET", CarbonText.Weight.BOLD, 9.0f,
+            CarbonText.drawTracked(graphics, font, "RESET", CarbonText.Weight.BOLD, 9.0f,
                     resetConfirm.x + 44.0f, resetConfirm.y + 12.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
-            CarbonText.drawTracked(graphics, "CANCEL", CarbonText.Weight.SEMIBOLD, 9.0f,
+            CarbonText.drawTracked(graphics, font, "CANCEL", CarbonText.Weight.SEMIBOLD, 9.0f,
                     resetCancel.x + 39.0f, resetCancel.y + 12.0f, CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
         }
     }
