@@ -1,6 +1,6 @@
 # Carbon Client
 
-Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. This branch is being transformed in gated parts. **Part 2 now provides the live Carbon Mods menu**, building on the Part 1 visual foundation. The full Settings, Waypoints, and HUD-editor workflows remain outside this part.
+Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Java 25. Part 3 now builds on the live Mods menu with Settings, local Waypoints, and a draggable HUD editor. Right Shift opens the non-pausing Carbon menu; the game keeps rendering behind it.
 
 ## Toolchain
 
@@ -11,32 +11,35 @@ Carbon Client is a PC-focused, client-only Fabric mod for Minecraft 26.2 and Jav
 - Fabric Loom `1.18-SNAPSHOT`
 - Gradle wrapper `9.8.0`
 
-No third-party UI library is used. With a Java 25 JDK installed, build and launch the client with:
+No third-party UI library is used. With a Java 25 JDK installed:
 
 ```sh
 ./gradlew build --no-daemon
 ./gradlew runClient
 ```
 
-The Carbon menu is registered in vanilla **Options → Controls → Key Binds → Carbon Client** and defaults to **Right Shift**. It does not pause the game. Press **F6** to toggle measured layout bounds and design-pixel sizes.
+The menu key is registered in vanilla **Options → Controls → Key Binds → Carbon Client**. F6 toggles layout measurements in the Mods screen. Minecraft's own UI font is the default to avoid the reported missing/square glyphs; the Settings page allows opting into the bundled Inter face and switching back. Inter's four TTF providers also reference `minecraft:default` for missing glyph coverage.
 
-## Part 1 visual foundation
+## Visual system
 
-- Layout values stay in 1920×1080 design pixels. `UiScale` applies `clamp(min(fbWidth/1920, fbHeight/1080), 0.6, 1.6)`, converts through Minecraft's GUI scale, and snaps positions and sizes to whole framebuffer pixels.
-- Carbon uses matte dark gradients, 96% window opacity, subtle white borders and top highlights, layered shadows, a green accent, and a 45% matte world dimmer with radial vignette. Native background blur is off; there is no glass/frosted blur.
-- Rounded surfaces use the custom SDF shader for coverage, gradients, and radial vignette. If registration or source preflight fails, Carbon logs an ERROR with the cause and displays a red `Carbon render failed: <reason>` message rather than substituting flat rectangles.
-- Text uses bundled Inter TTF providers in regular, medium, semibold, and bold weights, with 4× oversampling and the SIL Open Font License. Text size is optically boosted and snapped to a minimum of 7 physical pixels to improve small-label legibility; tracked uppercase layouts and bounded text caches are retained.
-- The icon atlas is built from real Lucide SVG files in `tools/icons-src/`, packed by `tools/build_icons.py`, mipmapped, and linearly sampled. It contains 24 icons and includes the Lucide license notice. Upstream no longer supplies `trash-2.svg`; the atlas uses the official `trash.svg` file for that entry.
+- Layout stays in 1920×1080 design pixels. `UiScale` applies `clamp(min(fbWidth/1920, fbHeight/1080), 0.6, 1.6)`, converts through Minecraft's GUI scale, and snaps to whole physical pixels.
+- The palette is matte black, Carbon green for active/on states, and white text. The window is 96% opaque, with subtle edges/highlights, shadows, and a 45% world dimmer. Native blur is off; there is no glass/frosted treatment.
+- Rounded panels use Carbon's SDF shader. If registration or source preflight fails, Carbon logs an ERROR and displays the red `Carbon render failed: <reason>` label; it does not silently substitute flat rectangles.
+- Inter regular, medium, semibold, and bold TTF assets use 4× oversampling and the SIL Open Font License. The real-file Lucide atlas contains 24 official SVG icons and includes its license. Upstream no longer supplies `trash-2.svg`; the atlas uses official `trash.svg` for that entry.
 
-## Part 2 Mods menu
+## Mods menu
 
-- Real starter modules are displayed and toggled live. The card settings buttons open typed module settings: booleans, numbers/sliders, modes, colors, and keyboard/mouse keybinds update the actual module objects and are saved through Carbon's existing config manager.
-- Filters cover all modules, HUD, visual, utility, performance, pinned, and enabled states. Search matches IDs, names, descriptions, categories, and setting labels/descriptions. Sorting supports name, category, and enabled status with either order; grid and list layouts are available.
-- Profiles can be switched and created in the profile popover. Module enabled state and settings continue to use Carbon's profile/config system. Filter, query, view, sort, and pinned-module state persist in `.minecraft/config/carbonclient/ui.json`.
-- Cards include real Lucide icons, pin and settings actions, active states, delayed tooltips, and empty-search feedback. Keyboard access includes search (`/` or Ctrl+F), arrow-key module navigation, Enter to toggle, Shift+Enter for settings, P to pin, Tab to change view, and Escape to close/dismiss.
+- Live starter modules, typed settings, pinning, seven filters, search, sort, grid/list view, delayed tooltips, and keyboard controls.
+- Profiles can be switched or created. Module toggles and settings use Carbon's existing profile/config system.
+- Filter, query, view, sort, typeface, and pins persist in `.minecraft/config/carbonclient/ui.json`.
 
-The Part 1 style-test screen remains in the source for visual regression work; Right Shift now opens the live Mods menu. Part 3 remains gated: the full Settings screen, Waypoints, HUD editor, and broader dialogs/toasts/polish are not included.
+## Part 3: Settings, Waypoints, HUD editor
+
+- **Settings** exposes the safe/default font choice, optional Inter face, waypoint HUD overlay, the vanilla keybind route, active profile status, and a confirmed reset for presentation state. Native blur remains off.
+- **Waypoints** saves a named block position and dimension locally in `.minecraft/config/carbonclient/waypoints.json`. Search and dimension filtering, coordinate copy, confirmed delete, and an optional nearest-waypoint HUD list are included. It does not teleport or send data to a server.
+- **HUD editor** previews enabled and disabled HUD modules without changing their enabled state, supports drag-to-place, keyboard nudging, scale controls, reset, and enable toggles. Position and scale are persisted by the current module profile.
+- Screens use the same black/green/white theme, a non-pausing backdrop, tooltips/toasts, and confirmation dialogs for destructive reset/delete actions.
 
 ## Verification
 
-`./gradlew build --no-daemon` checks compilation and packaging; it is not visual/runtime verification. Please test in a Java 25 Minecraft 26.2 Fabric profile at GUI Scale 1–4, resize the window, compare 1080p and 1440p, check that Inter text is legible and stable, exercise module toggles/settings/profile changes and search/filter/sort/grid/list, and use Spark to compare FPS with the screen open and closed. In-game shader/text appearance and FPS remain unverified in this sandbox.
+CI `clean build` checks compilation and packaging; it is not visual/runtime verification. Test in a Java 25 Minecraft 26.2 Fabric profile at GUI Scale 1–4; resize the window; compare 1080p and 1440p; confirm ordinary words render rather than square glyphs; test the Minecraft and Inter typefaces, modules/settings/profiles, waypoints, HUD drag/scale/reset, and the optional waypoint overlay. Use Spark to compare FPS with the menu open and closed. In-game font/shader appearance and Spark results remain unverified in this sandbox.

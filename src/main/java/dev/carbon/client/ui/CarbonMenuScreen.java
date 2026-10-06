@@ -10,8 +10,9 @@ import dev.carbon.client.core.setting.KeybindSetting;
 import dev.carbon.client.core.setting.ModeSetting;
 import dev.carbon.client.core.setting.NumberSetting;
 import dev.carbon.client.core.setting.Setting;
+import dev.carbon.client.hud.HudManager;
 import dev.carbon.client.ui.render.CarbonShapes;
-import net.fabricmc.loader.api.FabricLoader;
+import dev.carbon.client.waypoint.WaypointManager;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.input.CharacterEvent;
@@ -20,7 +21,6 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -39,13 +39,13 @@ public final class CarbonMenuScreen extends CarbonScreen {
     private static final int MAX_PROFILE_ROWS = 12;
     private static final int PROFILE_POPOVER_ROWS = 7;
     private static final int MAX_SETTINGS_ROWS = 12;
-    private static final int[] COLOR_PRESETS = {
-            0xFFFFFFFF, 0xFF1FC76F, 0xFF47B8FF, 0xFFFFB547, 0xFFFF5968, 0xFFB58CFF
-    };
+    private static final int[] COLOR_PRESETS = {0xFFFFFFFF, 0xFF1FC76F};
     private static final String PROFILE_PATTERN = "[a-z0-9][a-z0-9_-]{0,31}";
 
     private final ModuleManager modules;
     private final ConfigManager configManager;
+    private final HudManager hudManager;
+    private final WaypointManager waypointManager;
     private final CarbonUiState uiState;
     private final List<Module> visibleModules = new ArrayList<>();
     private final List<String> profiles = new ArrayList<>();
@@ -72,6 +72,10 @@ public final class CarbonMenuScreen extends CarbonScreen {
     private final Box gridButton = new Box();
     private final Box listButton = new Box();
     private final Box sortButton = new Box();
+    private final Box modsTab = new Box();
+    private final Box waypointsTab = new Box();
+    private final Box hudTab = new Box();
+    private final Box settingsTab = new Box();
     private final Box closeButton = new Box();
     private final Box sortPanel = new Box();
     private final Box sortOrderButton = new Box();
@@ -120,12 +124,15 @@ public final class CarbonMenuScreen extends CarbonScreen {
     private long lastBlinkNanos;
     private boolean caretVisible = true;
 
-    public CarbonMenuScreen(ModuleManager modules, ConfigManager configManager) {
+    public CarbonMenuScreen(ModuleManager modules, ConfigManager configManager, HudManager hudManager,
+                            WaypointManager waypointManager, CarbonUiState uiState) {
         super(Component.literal("Carbon Client"), null);
         this.modules = Objects.requireNonNull(modules, "modules");
         this.configManager = Objects.requireNonNull(configManager, "configManager");
-        Path statePath = FabricLoader.getInstance().getConfigDir().resolve("carbonclient").resolve("ui.json");
-        this.uiState = CarbonUiState.load(statePath);
+        this.hudManager = Objects.requireNonNull(hudManager, "hudManager");
+        this.waypointManager = Objects.requireNonNull(waypointManager, "waypointManager");
+        this.uiState = Objects.requireNonNull(uiState, "uiState");
+        CarbonText.setTypeface(uiState.typeface());
         this.filter = uiState.filter();
         this.viewMode = uiState.viewMode();
         this.sortMode = uiState.sortMode();
@@ -172,6 +179,10 @@ public final class CarbonMenuScreen extends CarbonScreen {
         gridButton.set(windowX + 728.0f, windowY + 79.0f, 30.0f, 30.0f);
         listButton.set(windowX + 763.0f, windowY + 79.0f, 30.0f, 30.0f);
         sortButton.set(windowX + 800.0f, windowY + 79.0f, 184.0f, 32.0f);
+        modsTab.set(windowX + 224.0f, windowY + 16.0f, 68.0f, 32.0f);
+        waypointsTab.set(windowX + 300.0f, windowY + 16.0f, 96.0f, 32.0f);
+        hudTab.set(windowX + 404.0f, windowY + 16.0f, 88.0f, 32.0f);
+        settingsTab.set(windowX + 500.0f, windowY + 16.0f, 92.0f, 32.0f);
         closeButton.set(windowX + PANEL_WIDTH - 50.0f, windowY + 14.0f, 34.0f, 34.0f);
 
         float categoryY = windowY + 160.0f;
@@ -354,7 +365,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
         if (!CarbonShapes.isReady()) {
             UiScale.pushRendererScale(graphics);
             try {
-                drawRenderFailure(graphics);
+                drawCarbonRenderFailure(graphics);
             } finally {
                 UiScale.popRendererScale(graphics);
             }
@@ -421,6 +432,10 @@ public final class CarbonMenuScreen extends CarbonScreen {
         drawButton(graphics, gridButton, viewMode == CarbonUiState.ViewMode.GRID, false, 7.0f);
         drawButton(graphics, listButton, viewMode == CarbonUiState.ViewMode.LIST, false, 7.0f);
         drawButton(graphics, sortButton, sortPopoverOpen, false, 7.0f);
+        drawButton(graphics, modsTab, false, true, 7.0f);
+        drawButton(graphics, waypointsTab, waypointsTab.contains(mouseDesignX, mouseDesignY), false, 7.0f);
+        drawButton(graphics, hudTab, hudTab.contains(mouseDesignX, mouseDesignY), false, 7.0f);
+        drawButton(graphics, settingsTab, settingsTab.contains(mouseDesignX, mouseDesignY), false, 7.0f);
         drawButton(graphics, closeButton, closeButton.contains(mouseDesignX, mouseDesignY), false, 7.0f);
         if (!searchQuery.isEmpty()) {
             CarbonShapes.drawRounded(graphics, clearSearchButton.x + 8.0f, clearSearchButton.y + 8.0f,
@@ -655,9 +670,18 @@ public final class CarbonMenuScreen extends CarbonScreen {
                 panel.x + 24.0f + CarbonText.trackedWidth(font, "CARBON", CarbonText.Weight.BOLD,
                         18.0f, CarbonText.Tracking.WORDMARK) + 10.0f,
                 panel.y + 24.0f, CarbonTheme.TEXT_DIM, CarbonText.Tracking.LABEL);
-        drawTracked(graphics, "MODS", CarbonText.Weight.SEMIBOLD, 12.0f,
-                panel.x + SIDEBAR_WIDTH + 18.0f, panel.y + 24.0f,
-                CarbonTheme.ACCENT_HIGHLIGHT, CarbonText.Tracking.LABEL);
+        CarbonText.centeredTracked(graphics, font, "MODS", CarbonText.Weight.SEMIBOLD, 9.0f,
+                modsTab.x + modsTab.width * 0.5f, modsTab.y + 11.0f,
+                CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
+        CarbonText.centeredTracked(graphics, font, "WAYPOINTS", CarbonText.Weight.MEDIUM, 8.0f,
+                waypointsTab.x + waypointsTab.width * 0.5f, waypointsTab.y + 12.0f,
+                CarbonTheme.TEXT_MUTED, CarbonText.Tracking.LABEL);
+        CarbonText.centeredTracked(graphics, font, "HUD EDITOR", CarbonText.Weight.MEDIUM, 8.0f,
+                hudTab.x + hudTab.width * 0.5f, hudTab.y + 12.0f,
+                CarbonTheme.TEXT_MUTED, CarbonText.Tracking.LABEL);
+        CarbonText.centeredTracked(graphics, font, "SETTINGS", CarbonText.Weight.MEDIUM, 8.0f,
+                settingsTab.x + settingsTab.width * 0.5f, settingsTab.y + 12.0f,
+                CarbonTheme.TEXT_MUTED, CarbonText.Tracking.LABEL);
         CarbonIcons.drawDesign(graphics, "x", panel.x + PANEL_WIDTH - 42.0f,
                 panel.y + 22.0f, 16.0f, CarbonTheme.TEXT_MUTED);
 
@@ -801,7 +825,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
                 card.y + 151.0f, module.enabled() ? CarbonTheme.ACCENT_HIGHLIGHT : CarbonTheme.TEXT_DIM,
                 CarbonText.Tracking.LABEL);
         drawButtonLabel(graphicsPlaceholder(), module.enabled() ? "ON" : "OFF", toggle,
-                module.enabled() ? CarbonTheme.WINDOW_BOTTOM : CarbonTheme.TEXT_MUTED, true);
+                CarbonTheme.TEXT, true);
         if (selected) {
             CarbonShapes.drawOutline(graphicsPlaceholder(), card.x + 3.0f, card.y + 3.0f,
                     card.width - 6.0f, card.height - 6.0f, 1.0f, CarbonTheme.ACCENT_HIGHLIGHT);
@@ -824,7 +848,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
         CarbonIcons.drawDesign(graphicsPlaceholder(), "settings", settings.x + 6.0f,
                 settings.y + 7.0f, 16.0f, CarbonTheme.TEXT_MUTED);
         drawButtonLabel(graphicsPlaceholder(), module.enabled() ? "ON" : "OFF", toggle,
-                module.enabled() ? CarbonTheme.ACCENT_HIGHLIGHT : CarbonTheme.TEXT_MUTED, true);
+                CarbonTheme.TEXT, true);
         if (selected) {
             CarbonShapes.drawOutline(graphicsPlaceholder(), row.x + 2.0f, row.y + 2.0f,
                     row.width - 4.0f, row.height - 4.0f, 1.0f, CarbonTheme.ACCENT_HIGHLIGHT);
@@ -884,7 +908,7 @@ public final class CarbonMenuScreen extends CarbonScreen {
                     CarbonTheme.TEXT_MUTED, CarbonText.Tracking.LABEL);
             drawTracked(graphics, "CREATE", CarbonText.Weight.SEMIBOLD, 9.0f,
                     profileConfirmButton.x + 48.0f, profileConfirmButton.y + 11.0f,
-                    CarbonTheme.WINDOW_BOTTOM, CarbonText.Tracking.LABEL);
+                    CarbonTheme.TEXT, CarbonText.Tracking.LABEL);
         }
         if (settingsPopoverOpen && settingsModule != null) {
             CarbonIcons.drawDesign(graphics, moduleIcon(settingsModule), settingsPanel.x + 18.0f,
@@ -985,12 +1009,6 @@ public final class CarbonMenuScreen extends CarbonScreen {
         CarbonText.drawTracked(graphics, font, "F6 LAYOUT DEBUG", CarbonText.Weight.BOLD, 10.0f,
                 panel.x + 14.0f, panel.y + panel.height - 20.0f,
                 CarbonTheme.ACCENT_HIGHLIGHT, CarbonText.Tracking.LABEL);
-    }
-
-    private void drawRenderFailure(GuiGraphicsExtractor graphics) {
-        CarbonText.centered(graphics, font, "Carbon render failed: " + CarbonShapes.failureReason(),
-                CarbonText.Weight.SEMIBOLD, 14.0f, UiScale.designWidth() * 0.5f,
-                UiScale.designHeight() * 0.5f, CarbonTheme.RED, false);
     }
 
     private void updateHover() {
@@ -1525,6 +1543,24 @@ public final class CarbonMenuScreen extends CarbonScreen {
             searchFocused = false;
             sortPopoverOpen = true;
             updatePopoverBounds();
+            return true;
+        }
+        if (waypointsTab.contains(mouseX, mouseY)) {
+            uiState.setQuery(searchQuery);
+            uiState.save();
+            CarbonUI.openWaypoints();
+            return true;
+        }
+        if (hudTab.contains(mouseX, mouseY)) {
+            uiState.setQuery(searchQuery);
+            uiState.save();
+            CarbonUI.openHudEditor();
+            return true;
+        }
+        if (settingsTab.contains(mouseX, mouseY)) {
+            uiState.setQuery(searchQuery);
+            uiState.save();
+            CarbonUI.openSettings();
             return true;
         }
         if (closeButton.contains(mouseX, mouseY)) {

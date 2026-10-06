@@ -34,6 +34,7 @@ public final class CarbonUiState {
     private Filter filter = Filter.ALL;
     private ViewMode viewMode = ViewMode.GRID;
     private SortMode sortMode = SortMode.NAME;
+    private Typeface typeface = Typeface.MINECRAFT;
     private boolean descending;
     private String query = "";
 
@@ -58,6 +59,7 @@ public final class CarbonUiState {
             state.filter = enumValue(root, "filter", Filter.class, Filter.ALL);
             state.viewMode = enumValue(root, "view", ViewMode.class, ViewMode.GRID);
             state.sortMode = enumValue(root, "sort", SortMode.class, SortMode.NAME);
+            state.typeface = enumValue(root, "typeface", Typeface.class, Typeface.MINECRAFT);
             state.descending = root.has("descending") && root.get("descending").getAsBoolean();
             if (root.has("query") && root.get("query").isJsonPrimitive()) {
                 state.query = boundedQuery(root.get("query").getAsString());
@@ -107,6 +109,15 @@ public final class CarbonUiState {
         save();
     }
 
+    public Typeface typeface() {
+        return typeface;
+    }
+
+    public void setTypeface(Typeface typeface) {
+        this.typeface = typeface == null ? Typeface.MINECRAFT : typeface;
+        save();
+    }
+
     public boolean descending() {
         return descending;
     }
@@ -143,12 +154,24 @@ public final class CarbonUiState {
         return Set.copyOf(pinnedModules);
     }
 
+    public void resetPresentation() {
+        filter = Filter.ALL;
+        viewMode = ViewMode.GRID;
+        sortMode = SortMode.NAME;
+        typeface = Typeface.MINECRAFT;
+        descending = false;
+        query = "";
+        pinnedModules.clear();
+        save();
+    }
+
     public void save() {
         JsonObject root = new JsonObject();
         root.addProperty("schemaVersion", SCHEMA_VERSION);
         root.addProperty("filter", filter.name());
         root.addProperty("view", viewMode.name());
         root.addProperty("sort", sortMode.name());
+        root.addProperty("typeface", typeface.name());
         root.addProperty("descending", descending);
         root.addProperty("query", query);
         JsonArray pins = new JsonArray();
@@ -217,6 +240,21 @@ public final class CarbonUiState {
     public enum ViewMode {
         GRID,
         LIST
+    }
+
+    public enum Typeface {
+        MINECRAFT("Minecraft UI · recommended"),
+        INTER("Inter · bundled");
+
+        private final String label;
+
+        Typeface(String label) {
+            this.label = label;
+        }
+
+        public String label() {
+            return label;
+        }
     }
 
     public enum SortMode {

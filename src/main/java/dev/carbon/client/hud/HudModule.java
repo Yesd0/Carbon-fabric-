@@ -98,11 +98,9 @@ public abstract class HudModule extends Module {
         }
     }
 
-    /** Draws a disabled module preview at its saved position without enabling the feature. */
+    /** Draws an editor preview at its saved position without changing enabled state or subscriptions. */
     public final void extractEditorPreview(HudRenderEvent event) {
-        if (!enabled()) {
-            renderAt(event, screenX(event.width()), screenY(event.height()));
-        }
+        renderAt(event, screenX(event.width()), screenY(event.height()));
     }
 
     @Override

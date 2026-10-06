@@ -11,12 +11,13 @@ import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-/** Bundled Inter TTF text helpers with cached components and per-codepoint tracked layouts. */
+/** Readable Minecraft-native text by default, with optional bundled Inter and cached tracked layouts. */
 public final class CarbonText {
     public static final float FONT_BASE_SIZE = 16.0f;
     private static final float TEXT_SIZE_BOOST = 1.18f;
     private static final int COMPONENT_CACHE_LIMIT = 768;
     private static final int TRACKED_CACHE_LIMIT = 384;
+    private static volatile CarbonUiState.Typeface typeface = CarbonUiState.Typeface.MINECRAFT;
 
     private static final Map<Weight, Map<String, Component>> COMPONENTS = new EnumMap<>(Weight.class);
     private static final Map<Weight, EnumMap<Tracking, Map<String, TrackedLayout>>> TRACKED_LAYOUTS =
@@ -46,13 +47,41 @@ public final class CarbonText {
         if (cached != null) {
             return cached;
         }
-        Component created = Component.literal(text).withStyle(
-                Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId)));
+        Style style = typeface == CarbonUiState.Typeface.INTER
+                ? Style.EMPTY.withFont(new FontDescription.Resource(weight.fontId))
+                : Style.EMPTY.withFont(FontDescription.DEFAULT);
+        if (typeface == CarbonUiState.Typeface.MINECRAFT
+                && (weight == Weight.SEMIBOLD || weight == Weight.BOLD)) {
+            style = style.withBold(true);
+        }
+        Component created = Component.literal(text).withStyle(style);
         cache.put(text, created);
         return created;
     }
 
-    /** Draw one cached Inter component in design pixels; the caller owns the frame scale transform. */
+    /** Use Minecraft's proven UI face by default; Inter remains opt-in and has a vanilla fallback provider. */
+    public static void setTypeface(CarbonUiState.Typeface nextTypeface) {
+        CarbonUiState.Typeface next = nextTypeface == null
+                ? CarbonUiState.Typeface.MINECRAFT : nextTypeface;
+        if (typeface == next) {
+            return;
+        }
+        typeface = next;
+        for (Map<String, Component> cache : COMPONENTS.values()) {
+            cache.clear();
+        }
+        for (EnumMap<Tracking, Map<String, TrackedLayout>> byTracking : TRACKED_LAYOUTS.values()) {
+            for (Map<String, TrackedLayout> cache : byTracking.values()) {
+                cache.clear();
+            }
+        }
+    }
+
+    public static CarbonUiState.Typeface typeface() {
+        return typeface;
+    }
+
+    /** Draw one cached Carbon UI component in design pixels; the caller owns the frame scale transform. */
     public static void draw(GuiGraphicsExtractor graphics, Font font, String text, Weight weight,
                             float designSize, float x, float y, int color, boolean shadow) {
         float scale = snappedTextScale(designSize);

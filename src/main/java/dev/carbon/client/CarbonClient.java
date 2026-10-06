@@ -8,6 +8,7 @@ import dev.carbon.client.core.event.MouseInputEvent;
 import dev.carbon.client.core.module.ModuleManager;
 import dev.carbon.client.core.config.ConfigManager;
 import dev.carbon.client.hud.HudManager;
+import dev.carbon.client.waypoint.WaypointManager;
 import dev.carbon.client.ui.CarbonUI;
 import dev.carbon.client.modules.hud.CpsHudModule;
 import dev.carbon.client.modules.hud.FpsHudModule;
@@ -30,6 +31,7 @@ public final class CarbonClient implements ClientModInitializer {
     private ModuleManager moduleManager;
     private ConfigManager configManager;
     private HudManager hudManager;
+    private WaypointManager waypointManager;
 
     @Override
     public void onInitializeClient() {
@@ -41,15 +43,10 @@ public final class CarbonClient implements ClientModInitializer {
             moduleManager.register(new FpsHudModule(eventBus));
             moduleManager.register(new ZoomModule(eventBus));
 
-            configManager = new ConfigManager(
-                    FabricLoader.getInstance().getConfigDir().resolve("carbonclient"), moduleManager);
+            java.nio.file.Path configDirectory = FabricLoader.getInstance().getConfigDir().resolve("carbonclient");
+            configManager = new ConfigManager(configDirectory, moduleManager);
             configManager.load();
-
-            try {
-                CarbonUI.initialize(eventBus, moduleManager, configManager);
-            } catch (Throwable failure) {
-                LOGGER.error("Could not initialize Carbon UI; the client modules remain available", failure);
-            }
+            waypointManager = new WaypointManager(configDirectory.resolve("waypoints.json"), eventBus);
 
             hudManager = new HudManager(eventBus);
             try {
@@ -58,8 +55,17 @@ public final class CarbonClient implements ClientModInitializer {
                 LOGGER.error("Could not register Carbon Client HUD rendering", failure);
             }
 
+            try {
+                CarbonUI.initialize(eventBus, moduleManager, configManager, hudManager, waypointManager);
+            } catch (Throwable failure) {
+                LOGGER.error("Could not initialize Carbon UI; the client modules remain available", failure);
+            }
+
             ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
             ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
+                if (waypointManager != null) {
+                    waypointManager.close();
+                }
                 if (configManager != null) {
                     configManager.close();
                 }

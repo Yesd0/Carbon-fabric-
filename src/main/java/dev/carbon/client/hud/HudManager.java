@@ -16,6 +16,7 @@ public final class HudManager {
     private final EventBus eventBus;
     private final HudRenderEvent renderEvent = new HudRenderEvent();
     private boolean registered;
+    private boolean editorPreviewActive;
 
     public HudManager(EventBus eventBus) {
         this.eventBus = Objects.requireNonNull(eventBus, "eventBus");
@@ -29,7 +30,18 @@ public final class HudManager {
         registered = true;
     }
 
+    public void setEditorPreviewActive(boolean active) {
+        editorPreviewActive = active;
+    }
+
+    public boolean editorPreviewActive() {
+        return editorPreviewActive;
+    }
+
     private void extract(GuiGraphicsExtractor graphics, DeltaTracker deltaTracker) {
+        if (editorPreviewActive) {
+            return;
+        }
         renderEvent.prepare(graphics, deltaTracker);
         eventBus.post(renderEvent);
     }
